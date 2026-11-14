@@ -103,7 +103,7 @@ button:disabled {
 <h3>現在時刻</h3>
 <div class="time" id="clock">--:--:--</div>
 <p class="status" id="status">未出勤</p>
-
+<p id="location">位置情報：未取得</p>
 <button class="checkin" id="inBtn" onclick="checkIn()">
 出勤する
 </button>
@@ -134,20 +134,45 @@ function updateClock() {
   document.getElementById("clock").textContent =
     new Date().toLocaleTimeString("ja-JP");
 }
+function getCurrentLocation() {
+ return new Promise(resolve => {
+  if (!navigator.geolocation) {
+   resolve(null);
+   return;
+  }
 
-function checkIn() {
-  if (records.length && !records[0].checkOut) return;
+  navigator.geolocation.getCurrentPosition(
+   position => {
+    resolve({
+     latitude: position.coords.latitude,
+     longitude: position.coords.longitude,
+     accuracy: position.coords.accuracy
+    });
+   },
+   error => resolve(null),
+   {
+    enableHighAccuracy: true,
+    timeout: 10000,
+    maximumAge: 0
+   }
+  );
+ });
+}
+async function checkIn() {
+ if (records.length && !records[0].checkOut) return;
 
-  const now = new Date();
+ const location = await getCurrentLocation();
+ const now = new Date();
 
-  records.unshift({
-    date: now.toLocaleDateString("ja-JP"),
-    checkIn: now.toLocaleTimeString("ja-JP"),
-    checkOut: ""
-  });
+ records.unshift({
+  date: now.toLocaleDateString("ja-JP"),
+  checkIn: now.toLocaleTimeString("ja-JP"),
+  checkOut: "",
+  location: location
+ });
 
-  save();
-  render();
+ save();
+ render();
 }
 
 function checkOut() {
@@ -190,6 +215,19 @@ function render() {
       " / 退勤: " + (item.checkOut || "勤務中");
 
     div.append(date, times);
+
+if (item.location) {
+ const loc = document.createElement("div");
+ loc.textContent = "GPS: " + item.location.latitude + ", " + item.location.longitude +
+  " (精度: " + Math.round(item.location.accuracy) + "m)";
+ div.appendChild(loc);
+} else {
+ const loc = document.createElement("div");
+ loc.textContent = "GPS: 位置情報なし";
+ div.appendChild(loc);
+}
+
+history.appendChild(div);
     history.appendChild(div);
   });
 }
