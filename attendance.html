@@ -218,8 +218,16 @@ function render() {
 
 if (item.location) {
  const loc = document.createElement("div");
- loc.textContent = "GPS: " + item.location.latitude + ", " + item.location.longitude +
-  " (精度: " + Math.round(item.location.accuracy) + "m)";
+ loc.textContent = "GPS: " + item.location.latitude + ", " + item.location.longitude;
+
+const mapLink = document.createElement("a");
+mapLink.href = "https://www.google.com/maps?q=" +
+ item.location.latitude + "," + item.location.longitude;
+mapLink.textContent = "Google Mapsで位置を確認";
+mapLink.target = "_blank";
+mapLink.rel = "noopener noreferrer";
+mapLink.style.display = "block";
+div.appendChild(mapLink);
  div.appendChild(loc);
 } else {
  const loc = document.createElement("div");
