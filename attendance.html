@@ -103,6 +103,15 @@ button:disabled {
 <h3>現在時刻</h3>
 <div class="time" id="clock">--:--:--</div>
 <p class="status" id="status">未出勤</p>
+<div style="margin:15px 0;">
+ <label for="employeeName">社員名 / Employee Name</label>
+ <input
+  type="text"
+  id="employeeName"
+  placeholder="社員名を入力してください"
+  style="width:100%;padding:13px;margin-top:8px;border:1px solid #ccc;border-radius:8px;font-size:16px;"
+ >
+</div>
 <p id="location">位置情報：未取得</p>
 <button class="checkin" id="inBtn" onclick="checkIn()">
 出勤する
@@ -177,11 +186,19 @@ function getCurrentLocation() {
 async function checkIn() {
  if (records.length && !records[0].checkOut) return;
 
+ const name = document.getElementById("employeeName").value.trim();
+
+ if (!name) {
+  alert("社員名を入力してください");
+  return;
+ }
+
  const location = await getCurrentLocation();
  const address = await getAddress(location);
  const now = new Date();
 
  records.unshift({
+  employeeName: name,
   date: now.toLocaleDateString("ja-JP"),
   checkIn: now.toLocaleTimeString("ja-JP"),
   checkOut: "",
@@ -227,7 +244,9 @@ function render() {
   records.forEach(item => {
     const div = document.createElement("div");
     div.className = "record";
-
+const name = document.createElement("div");
+name.textContent = "社員名: " + (item.employeeName || "未登録");
+name.style.fontWeight = "bold";
     const date = document.createElement("strong");
     date.textContent = item.date;
 
@@ -236,7 +255,7 @@ function render() {
       "出勤: " + item.checkIn +
       " / 退勤: " + (item.checkOut || "勤務中");
 
-    div.append(date, times);
+   div.append(name, date, times);
 
 if (item.location) {
  const loc = document.createElement("div");
