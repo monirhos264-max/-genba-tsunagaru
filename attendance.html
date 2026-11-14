@@ -1,0 +1,203 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>出勤・退勤 | 現場つながる</title>
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 20px;
+  background: #f1f5f9;
+  font-family: Arial, sans-serif;
+  color: #1e293b;
+}
+
+header {
+  background: #17365d;
+  color: white;
+  padding: 22px;
+  border-radius: 14px;
+  text-align: center;
+}
+
+.container {
+  max-width: 500px;
+  margin: 20px auto;
+}
+
+.card {
+  background: white;
+  padding: 22px;
+  margin-bottom: 18px;
+  border-radius: 14px;
+  box-shadow: 0 3px 10px rgba(0,0,0,.07);
+}
+
+.time {
+  font-size: 30px;
+  font-weight: bold;
+  text-align: center;
+  margin: 20px 0;
+}
+
+.status {
+  text-align: center;
+  font-weight: bold;
+  color: #64748b;
+}
+
+button {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-size: 17px;
+  font-weight: bold;
+  margin-top: 12px;
+}
+
+.checkin {
+  background: #15803d;
+}
+
+.checkout {
+  background: #dc2626;
+}
+
+button:disabled {
+  background: #94a3b8;
+}
+
+.record {
+  border-bottom: 1px solid #e2e8f0;
+  padding: 12px 0;
+  line-height: 1.8;
+}
+
+.back {
+  display: block;
+  text-align: center;
+  margin-top: 20px;
+  color: #17365d;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<h2>現場つながる</h2>
+<p>出勤・退勤管理</p>
+</header>
+
+<main class="container">
+
+<div class="card">
+<h3>現在時刻</h3>
+<div class="time" id="clock">--:--:--</div>
+<p class="status" id="status">未出勤</p>
+
+<button class="checkin" id="inBtn" onclick="checkIn()">
+出勤する
+</button>
+
+<button class="checkout" id="outBtn" onclick="checkOut()" disabled>
+退勤する
+</button>
+</div>
+
+<div class="card">
+<h3>出勤履歴</h3>
+<div id="history">記録はありません</div>
+</div>
+
+<a class="back" href="dashboard.html">← ダッシュボードへ戻る</a>
+
+</main>
+
+<script>
+const KEY = "genba_attendance";
+let records = JSON.parse(localStorage.getItem(KEY) || "[]");
+
+function save() {
+  localStorage.setItem(KEY, JSON.stringify(records));
+}
+
+function updateClock() {
+  document.getElementById("clock").textContent =
+    new Date().toLocaleTimeString("ja-JP");
+}
+
+function checkIn() {
+  if (records.length && !records[0].checkOut) return;
+
+  const now = new Date();
+
+  records.unshift({
+    date: now.toLocaleDateString("ja-JP"),
+    checkIn: now.toLocaleTimeString("ja-JP"),
+    checkOut: ""
+  });
+
+  save();
+  render();
+}
+
+function checkOut() {
+  if (!records.length || records[0].checkOut) return;
+
+  records[0].checkOut =
+    new Date().toLocaleTimeString("ja-JP");
+
+  save();
+  render();
+}
+
+function render() {
+  const active = records.length > 0 && !records[0].checkOut;
+
+  document.getElementById("status").textContent =
+    active ? "勤務中" : "未出勤";
+
+  document.getElementById("inBtn").disabled = active;
+  document.getElementById("outBtn").disabled = !active;
+
+  const history = document.getElementById("history");
+  history.replaceChildren();
+
+  if (!records.length) {
+    history.textContent = "記録はありません";
+    return;
+  }
+
+  records.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "record";
+
+    const date = document.createElement("strong");
+    date.textContent = item.date;
+
+    const times = document.createElement("div");
+    times.textContent =
+      "出勤: " + item.checkIn +
+      " / 退勤: " + (item.checkOut || "勤務中");
+
+    div.append(date, times);
+    history.appendChild(div);
+  });
+}
+
+updateClock();
+setInterval(updateClock, 1000);
+render();
+</script>
+
+</body>
+</html>
