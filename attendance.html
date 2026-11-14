@@ -158,17 +158,35 @@ function getCurrentLocation() {
   );
  });
 }
+  async function getAddress(location) {
+ if (!location) return "";
+
+ try {
+  const url = "https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=" +
+   location.latitude + "&lon=" + location.longitude + "&accept-language=ja";
+
+  const response = await fetch(url);
+  if (!response.ok) return "";
+
+  const data = await response.json();
+  return data.display_name || "";
+ } catch (error) {
+  return "";
+ }
+}
 async function checkIn() {
  if (records.length && !records[0].checkOut) return;
 
  const location = await getCurrentLocation();
+ const address = await getAddress(location);
  const now = new Date();
 
  records.unshift({
   date: now.toLocaleDateString("ja-JP"),
   checkIn: now.toLocaleTimeString("ja-JP"),
   checkOut: "",
-  location: location
+  location: location,
+  address: address
  });
 
  save();
@@ -228,6 +246,11 @@ mapLink.target = "_blank";
 mapLink.rel = "noopener noreferrer";
 mapLink.style.display = "block";
 div.appendChild(mapLink);
+const addressText = document.createElement("p");
+addressText.textContent = item.address
+ ? "住所: " + item.address
+ : "住所: 取得できませんでした";
+div.appendChild(addressText);
  div.appendChild(loc);
 } else {
  const loc = document.createElement("div");
