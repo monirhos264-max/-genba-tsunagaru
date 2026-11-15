@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -71,6 +72,11 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
 .delivery-item {
   border-bottom: 1px solid #e2e8f0;
   padding: 15px 0;
@@ -134,6 +140,10 @@ button {
     <input id="employeeName" type="text"
       placeholder="社員名を入力してください" required>
 
+    <label for="companyPin">会社 PIN</label>
+    <input id="companyPin" type="password"
+      placeholder="会社 PIN を入力してください" required>
+
     <label for="siteName">現場名</label>
     <input id="siteName" type="text"
       placeholder="例：ファミールハイツ城東" required>
@@ -168,7 +178,9 @@ button {
     <label for="photo">納品写真</label>
     <input id="photo" type="file" accept="image/*">
 
-    <button type="submit">納品情報を保存する</button>
+    <button id="submitButton" type="submit">
+      納品情報を保存する
+    </button>
 
   </form>
 </div>
@@ -184,6 +196,8 @@ button {
 
 </main>
 
+<script src="app-config.js"></script>
+
 <script>
 const STORAGE_KEY = "genba_delivery_records";
 
@@ -192,6 +206,7 @@ let deliveries = JSON.parse(
 );
 
 const form = document.getElementById("deliveryForm");
+const submitButton = document.getElementById("submitButton");
 
 document.getElementById("deliveryDate").value =
   new Date().toLocaleDateString("en-CA");
@@ -250,8 +265,45 @@ function renderDeliveries() {
   });
 }
 
-form.addEventListener("submit", function(event) {
+async function sendToDatabase(record, pin) {
+  if (!window.GENBA_CONFIG ||
+      !window.GENBA_CONFIG.functionUrl ||
+      !window.GENBA_CONFIG.publishableKey) {
+    throw new Error("アプリ設定を確認してください");
+  }
+
+  const response = await fetch(
+    window.GENBA_CONFIG.functionUrl,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": window.GENBA_CONFIG.publishableKey
+      },
+      body: JSON.stringify({
+        pin: pin,
+        table: "delivery_records",
+        employee_name: record.employeeName,
+        record_data: record
+      })
+    }
+  );
+
+  const result = await response.json();
+
+  if (!response.ok || !result.success) {
+    throw new Error(
+      result.error || "データベースへの保存に失敗しました"
+    );
+  }
+
+  return result;
+}
+
+form.addEventListener("submit", async function(event) {
   event.preventDefault();
+
+  if (submitButton.disabled) return;
 
   const quantity = Number(
     document.getElementById("quantity").value
@@ -262,6 +314,13 @@ form.addEventListener("submit", function(event) {
     return;
   }
 
+  const pin = document.getElementById("companyPin").value.trim();
+
+  if (!pin) {
+    alert("会社 PIN を入力してください");
+    return;
+  }
+
   const photoFile = document.getElementById("photo").files[0];
 
   if (photoFile && photoFile.size > 1500000) {
@@ -269,7 +328,25 @@ form.addEventListener("submit", function(event) {
     return;
   }
 
-  function saveRecord(photoData) {
+  submitButton.disabled = true;
+  submitButton.textContent = "保存中...";
+
+  try {
+    let photoData = "";
+
+    if (photoFile) {
+      photoData = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(
+          new Error("写真を読み込めませんでした")
+        );
+
+        reader.readAsDataURL(photoFile);
+      });
+    }
+
     const record = {
       employeeName: document.getElementById("employeeName").value.trim(),
       siteName: document.getElementById("siteName").value.trim(),
@@ -287,42 +364,36 @@ form.addEventListener("submit", function(event) {
         !record.siteName ||
         !record.productName ||
         !record.deliveryDate) {
-      alert("必須項目を入力してください");
-      return;
+      throw new Error("必須項目を入力してください");
     }
+
+    await sendToDatabase(record, pin);
 
     deliveries.unshift(record);
 
     try {
       saveDeliveries();
-    } catch (error) {
+    } catch (storageError) {
       deliveries.shift();
-      alert("保存容量が不足しています。写真を小さくして再度お試しください。");
-      return;
+      console.error("Local storage save failed:", storageError);
     }
 
     renderDeliveries();
-    alert("納品情報を保存しました！");
+
+    alert("納品情報をデータベースに保存しました！");
+
     form.reset();
 
     document.getElementById("deliveryDate").value =
       new Date().toLocaleDateString("en-CA");
-  }
 
-  if (photoFile) {
-    const reader = new FileReader();
+  } catch (error) {
+    console.error(error);
+    alert("保存できませんでした。\n" + error.message);
 
-    reader.onload = function() {
-      saveRecord(reader.result);
-    };
-
-    reader.onerror = function() {
-      alert("写真を読み込めませんでした");
-    };
-
-    reader.readAsDataURL(photoFile);
-  } else {
-    saveRecord("");
+  } finally {
+    submitButton.disabled = false;
+    submitButton.textContent = "納品情報を保存する";
   }
 });
 
