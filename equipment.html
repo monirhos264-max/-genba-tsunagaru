@@ -1,0 +1,262 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>備品申請 | 現場つながる</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 18px;
+  background: #f1f5f9;
+  color: #1e293b;
+  font-family: Arial, sans-serif;
+}
+
+header {
+  background: #17365d;
+  color: white;
+  text-align: center;
+  padding: 22px;
+  border-radius: 14px;
+}
+
+.container {
+  max-width: 600px;
+  margin: 20px auto;
+}
+
+.card {
+  background: white;
+  padding: 22px;
+  margin-bottom: 18px;
+  border-radius: 14px;
+  box-shadow: 0 3px 10px rgba(0,0,0,.07);
+}
+
+label {
+  display: block;
+  font-weight: bold;
+  margin: 16px 0 7px;
+}
+
+input, textarea, select {
+  width: 100%;
+  padding: 13px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 16px;
+  background: white;
+}
+
+textarea {
+  min-height: 85px;
+  resize: vertical;
+}
+
+button {
+  width: 100%;
+  padding: 15px;
+  margin-top: 20px;
+  border: none;
+  border-radius: 9px;
+  background: #15803d;
+  color: white;
+  font-size: 17px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.application {
+  border-bottom: 1px solid #e2e8f0;
+  padding: 15px 0;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+
+.application:last-child {
+  border-bottom: none;
+}
+
+.status {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: #fef3c7;
+  color: #92400e;
+  font-weight: bold;
+}
+
+.back {
+  display: block;
+  text-align: center;
+  margin: 22px 0;
+  color: #17365d;
+  text-decoration: none;
+  font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h2>現場つながる</h2>
+  <p>備品申請システム</p>
+</header>
+
+<main class="container">
+
+  <div class="card">
+    <h3>🛠️ 備品・消耗品の申請</h3>
+
+    <form id="equipmentForm">
+
+      <label for="employeeName">社員名</label>
+      <input type="text" id="employeeName"
+        placeholder="社員名を入力してください" required>
+
+      <label for="siteName">現場名</label>
+      <input type="text" id="siteName"
+        placeholder="例：ファミールハイツ城東" required>
+
+      <label for="equipmentName">備品名</label>
+      <input type="text" id="equipmentName"
+        placeholder="例：掃除機、モップ、手袋" required>
+
+      <label for="quantity">数量</label>
+      <input type="number" id="quantity"
+        min="1" step="1" placeholder="必要な数量" required>
+
+      <label for="requestDate">希望日</label>
+      <input type="date" id="requestDate" required>
+
+      <label for="reason">申請理由</label>
+      <textarea id="reason"
+        placeholder="申請理由を入力してください" required></textarea>
+
+      <button type="submit">申請を保存する</button>
+
+    </form>
+  </div>
+
+  <div class="card">
+    <h3>📋 申請履歴</h3>
+    <div id="applicationHistory">申請はまだありません</div>
+  </div>
+
+  <a class="back" href="dashboard.html">
+    ← ダッシュボードへ戻る
+  </a>
+
+</main>
+
+<script>
+const STORAGE_KEY = "genba_equipment_requests";
+
+let applications = JSON.parse(
+  localStorage.getItem(STORAGE_KEY) || "[]"
+);
+
+const form = document.getElementById("equipmentForm");
+
+document.getElementById("requestDate").value =
+  new Date().toLocaleDateString("en-CA");
+
+function saveApplications() {
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify(applications)
+  );
+}
+
+function renderApplications() {
+  const history = document.getElementById("applicationHistory");
+  history.replaceChildren();
+
+  if (applications.length === 0) {
+    history.textContent = "申請はまだありません";
+    return;
+  }
+
+  applications.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "application";
+
+    const title = document.createElement("strong");
+    title.textContent = item.equipmentName + " × " + item.quantity;
+
+    const details = document.createElement("div");
+    details.textContent =
+      "社員名: " + item.employeeName +
+      "\n現場名: " + item.siteName +
+      "\n希望日: " + item.requestDate +
+      "\n申請理由: " + item.reason +
+      "\n申請日時: " + item.savedAt;
+
+    details.style.whiteSpace = "pre-line";
+
+    const status = document.createElement("span");
+    status.className = "status";
+    status.textContent = "申請受付";
+
+    div.append(title, details, status);
+    history.appendChild(div);
+  });
+}
+
+form.addEventListener("submit", function(event) {
+  event.preventDefault();
+
+  const quantity = Number(
+    document.getElementById("quantity").value
+  );
+
+  if (!Number.isInteger(quantity) || quantity < 1) {
+    alert("数量は1以上の整数で入力してください");
+    return;
+  }
+
+  const application = {
+    employeeName: document.getElementById("employeeName").value.trim(),
+    siteName: document.getElementById("siteName").value.trim(),
+    equipmentName: document.getElementById("equipmentName").value.trim(),
+    quantity: quantity,
+    requestDate: document.getElementById("requestDate").value,
+    reason: document.getElementById("reason").value.trim(),
+    savedAt: new Date().toLocaleString("ja-JP")
+  };
+
+  if (!application.employeeName ||
+      !application.siteName ||
+      !application.equipmentName ||
+      !application.reason ||
+      !application.requestDate) {
+    alert("必須項目を入力してください");
+    return;
+  }
+
+  applications.unshift(application);
+
+  saveApplications();
+  renderApplications();
+
+  alert("備品申請を保存しました！");
+
+  form.reset();
+
+  document.getElementById("requestDate").value =
+    new Date().toLocaleDateString("en-CA");
+});
+
+renderApplications();
+</script>
+
+</body>
+</html>
