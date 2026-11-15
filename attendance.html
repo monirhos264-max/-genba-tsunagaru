@@ -1,14 +1,14 @@
 
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>出勤・退勤 | 現場つながる</title>
+
 <style>
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
   margin: 0;
@@ -52,6 +52,15 @@ header {
   color: #64748b;
 }
 
+.field {
+  width: 100%;
+  padding: 13px;
+  margin-top: 8px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 16px;
+}
+
 button {
   width: 100%;
   padding: 16px;
@@ -63,13 +72,8 @@ button {
   margin-top: 12px;
 }
 
-.checkin {
-  background: #15803d;
-}
-
-.checkout {
-  background: #dc2626;
-}
+.checkin { background: #15803d; }
+.checkout { background: #dc2626; }
 
 button:disabled {
   background: #94a3b8;
@@ -87,49 +91,73 @@ button:disabled {
   margin-top: 20px;
   color: #17365d;
 }
+
+#message {
+  margin-top: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+}
 </style>
 </head>
 
 <body>
 
 <header>
-<h2>現場つながる</h2>
-<p>出勤・退勤管理</p>
+  <h2>現場つながる</h2>
+  <p>出勤・退勤管理</p>
 </header>
 
 <main class="container">
 
 <div class="card">
-<h3>現在時刻</h3>
-<div class="time" id="clock">--:--:--</div>
-<p class="status" id="status">未出勤</p>
-<div style="margin:15px 0;">
- <label for="employeeName">社員名 / Employee Name</label>
- <input
-  type="text"
-  id="employeeName"
-  placeholder="社員名を入力してください"
-  style="width:100%;padding:13px;margin-top:8px;border:1px solid #ccc;border-radius:8px;font-size:16px;"
- >
-</div>
-<p id="location">位置情報：未取得</p>
-<button class="checkin" id="inBtn" onclick="checkIn()">
-出勤する
-</button>
+  <h3>現在時刻</h3>
+  <div class="time" id="clock">--:--:--</div>
+  <p class="status" id="status">未出勤</p>
 
-<button class="checkout" id="outBtn" onclick="checkOut()" disabled>
-退勤する
-</button>
+  <div style="margin:15px 0;">
+    <label for="employeeName">社員名 / Employee Name</label>
+    <input
+      type="text"
+      id="employeeName"
+      class="field"
+      placeholder="社員名を入力してください"
+    >
+  </div>
+
+  <div style="margin:15px 0;">
+    <label for="companyPin">会社共通PIN / Company PIN</label>
+    <input
+      type="password"
+      id="companyPin"
+      class="field"
+      placeholder="会社共通PINを入力してください"
+      autocomplete="off"
+    >
+  </div>
+
+  <p id="location">位置情報：未取得</p>
+
+  <button class="checkin" id="inBtn" onclick="checkIn()">
+    出勤する
+  </button>
+
+  <button class="checkout" id="outBtn" onclick="checkOut()" disabled>
+    退勤する
+  </button>
+
+  <p id="message" role="status"></p>
 </div>
 
 <div class="card">
-<h3>出勤履歴</h3>
-<div id="history">記録はありません</div>
+  <h3>出勤履歴</h3>
+  <div id="history">記録はありません</div>
 </div>
 
 <a class="back" href="dashboard.html">← ダッシュボードへ戻る</a>
 
 </main>
+
+<script src="app-config.js"></script>
 
 <script>
 const KEY = "genba_attendance";
@@ -139,93 +167,221 @@ function save() {
   localStorage.setItem(KEY, JSON.stringify(records));
 }
 
+function showMessage(message, color = "#15803d") {
+  const el = document.getElementById("message");
+  el.textContent = message;
+  el.style.color = color;
+}
+
 function updateClock() {
   document.getElementById("clock").textContent =
     new Date().toLocaleTimeString("ja-JP");
 }
+
 function getCurrentLocation() {
- return new Promise(resolve => {
-  if (!navigator.geolocation) {
-   resolve(null);
-   return;
+  return new Promise(resolve => {
+    if (!navigator.geolocation) {
+      resolve(null);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        resolve({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy
+        });
+      },
+      () => resolve(null),
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+  });
+}
+
+async function getAddress(location) {
+  if (!location) return "";
+
+  try {
+    const url =
+      "https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=" +
+      location.latitude + "&lon=" +
+      location.longitude + "&accept-language=ja";
+
+    const response = await fetch(url);
+
+    if (!response.ok) return "";
+
+    const data = await response.json();
+    return data.display_name || "";
+  } catch (error) {
+    return "";
+  }
+}
+
+async function sendToDatabase(employeeName, recordData) {
+  if (!window.GENBA_CONFIG ||
+      !window.GENBA_CONFIG.functionUrl ||
+      !window.GENBA_CONFIG.publishableKey) {
+    throw new Error("アプリ設定を確認してください");
   }
 
-  navigator.geolocation.getCurrentPosition(
-   position => {
-    resolve({
-     latitude: position.coords.latitude,
-     longitude: position.coords.longitude,
-     accuracy: position.coords.accuracy
-    });
-   },
-   error => resolve(null),
-   {
-    enableHighAccuracy: true,
-    timeout: 10000,
-    maximumAge: 0
-   }
+  const pin = document.getElementById("companyPin").value.trim();
+
+  if (!pin) {
+    throw new Error("会社共通PINを入力してください");
+  }
+
+  const response = await fetch(
+    window.GENBA_CONFIG.functionUrl,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": window.GENBA_CONFIG.publishableKey
+      },
+      body: JSON.stringify({
+        pin: pin,
+        table: "attendance_records",
+        employee_name: employeeName,
+        record_data: recordData
+      })
+    }
   );
- });
+
+  const result = await response.json();
+
+  if (!response.ok || !result.success) {
+    throw new Error(
+      result.error || "Databaseへの保存に失敗しました"
+    );
+  }
+
+  return result;
 }
-  async function getAddress(location) {
- if (!location) return "";
 
- try {
-  const url = "https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=" +
-   location.latitude + "&lon=" + location.longitude + "&accept-language=ja";
-
-  const response = await fetch(url);
-  if (!response.ok) return "";
-
-  const data = await response.json();
-  return data.display_name || "";
- } catch (error) {
-  return "";
- }
-}
 async function checkIn() {
- if (records.length && !records[0].checkOut) return;
+  if (records.length && !records[0].checkOut) return;
 
- const name = document.getElementById("employeeName").value.trim();
+  const name = document.getElementById("employeeName").value.trim();
 
- if (!name) {
-  alert("社員名を入力してください");
-  return;
- }
+  if (!name) {
+    alert("社員名を入力してください");
+    return;
+  }
 
- const location = await getCurrentLocation();
- const address = await getAddress(location);
- const now = new Date();
+  const pin = document.getElementById("companyPin").value.trim();
 
- records.unshift({
-  employeeName: name,
-  date: now.toLocaleDateString("ja-JP"),
-  checkIn: now.toLocaleTimeString("ja-JP"),
-  checkOut: "",
-  location: location,
-  address: address
- });
+  if (!pin) {
+    alert("会社共通PINを入力してください");
+    return;
+  }
 
- save();
- render();
+  const inBtn = document.getElementById("inBtn");
+  const outBtn = document.getElementById("outBtn");
+
+  inBtn.disabled = true;
+  outBtn.disabled = true;
+  showMessage("出勤情報を送信しています...", "#64748b");
+
+  try {
+    const location = await getCurrentLocation();
+    const address = await getAddress(location);
+    const now = new Date();
+
+    const record = {
+      employeeName: name,
+      date: now.toLocaleDateString("ja-JP"),
+      checkIn: now.toLocaleTimeString("ja-JP"),
+      checkOut: "",
+      location: location,
+      address: address
+    };
+
+    await sendToDatabase(name, {
+      event_type: "checkin",
+      ...record
+    });
+
+    records.unshift(record);
+    save();
+    render();
+
+    document.getElementById("location").textContent =
+      location
+        ? "位置情報：取得済み"
+        : "位置情報：取得できませんでした";
+
+    showMessage("出勤記録をDatabaseに保存しました。");
+
+  } catch (error) {
+    showMessage("保存失敗：" + error.message, "#dc2626");
+    alert("出勤記録を保存できませんでした。\n" + error.message);
+  } finally {
+    render();
+  }
 }
 
 async function checkOut() {
- if (!records.length || records[0].checkOut) return;
+  if (!records.length || records[0].checkOut) return;
 
- const location = await getCurrentLocation();
- const address = await getAddress(location);
+  const name = records[0].employeeName;
+  const pin = document.getElementById("companyPin").value.trim();
 
- records[0].checkOut = new Date().toLocaleTimeString("ja-JP");
- records[0].checkOutLocation = location;
- records[0].checkOutAddress = address;
+  if (!pin) {
+    alert("会社共通PINを入力してください");
+    return;
+  }
 
- save();
- render();
+  const inBtn = document.getElementById("inBtn");
+  const outBtn = document.getElementById("outBtn");
+
+  inBtn.disabled = true;
+  outBtn.disabled = true;
+  showMessage("退勤情報を送信しています...", "#64748b");
+
+  try {
+    const location = await getCurrentLocation();
+    const address = await getAddress(location);
+
+    const updatedRecord = {
+      ...records[0],
+      checkOut: new Date().toLocaleTimeString("ja-JP"),
+      checkOutLocation: location,
+      checkOutAddress: address
+    };
+
+    await sendToDatabase(name, {
+      event_type: "checkout",
+      ...updatedRecord
+    });
+
+    records[0] = updatedRecord;
+    save();
+    render();
+
+    document.getElementById("location").textContent =
+      location
+        ? "位置情報：取得済み"
+        : "位置情報：取得できませんでした";
+
+    showMessage("退勤記録をDatabaseに保存しました。");
+
+  } catch (error) {
+    showMessage("保存失敗：" + error.message, "#dc2626");
+    alert("退勤記録を保存できませんでした。\n" + error.message);
+  } finally {
+    render();
+  }
 }
 
 function render() {
-  const active = records.length > 0 && !records[0].checkOut;
+  const active =
+    records.length > 0 && !records[0].checkOut;
 
   document.getElementById("status").textContent =
     active ? "勤務中" : "未出勤";
@@ -244,9 +400,12 @@ function render() {
   records.forEach(item => {
     const div = document.createElement("div");
     div.className = "record";
-const name = document.createElement("div");
-name.textContent = "社員名: " + (item.employeeName || "未登録");
-name.style.fontWeight = "bold";
+
+    const name = document.createElement("div");
+    name.textContent =
+      "社員名: " + (item.employeeName || "未登録");
+    name.style.fontWeight = "bold";
+
     const date = document.createElement("strong");
     date.textContent = item.date;
 
@@ -255,65 +414,70 @@ name.style.fontWeight = "bold";
       "出勤: " + item.checkIn +
       " / 退勤: " + (item.checkOut || "勤務中");
 
-   div.append(name, date, times);
+    div.append(name, date, times);
 
-if (item.location) {
- const loc = document.createElement("div");
- loc.textContent = "GPS: " + item.location.latitude + ", " + item.location.longitude;
+    if (item.location) {
+      const loc = document.createElement("div");
+      loc.textContent =
+        "GPS: " + item.location.latitude +
+        ", " + item.location.longitude;
 
-const mapLink = document.createElement("a");
-mapLink.href = "https://www.google.com/maps?q=" +
- item.location.latitude + "," + item.location.longitude;
-mapLink.textContent = "Google Mapsで位置を確認";
-mapLink.target = "_blank";
-mapLink.rel = "noopener noreferrer";
-mapLink.style.display = "block";
-div.appendChild(mapLink);
-const addressText = document.createElement("p");
-addressText.textContent = item.address
- ? "住所: " + item.address
- : "住所: 取得できませんでした";
-div.appendChild(addressText);
- div.appendChild(loc);
-} else {
- const loc = document.createElement("div");
- loc.textContent = "GPS: 位置情報なし";
- div.appendChild(loc);
-}
-if (item.checkOut) {
- const out = document.createElement("div");
- out.className = "location-box";
+      const mapLink = document.createElement("a");
+      mapLink.href =
+        "https://www.google.com/maps?q=" +
+        item.location.latitude + "," +
+        item.location.longitude;
+      mapLink.textContent = "Google Mapsで位置を確認";
+      mapLink.target = "_blank";
+      mapLink.rel = "noopener noreferrer";
+      mapLink.style.display = "block";
 
- const title = document.createElement("strong");
- title.textContent = "📍 退勤場所";
- out.appendChild(title);
+      const addressText = document.createElement("p");
+      addressText.textContent = item.address
+        ? "住所: " + item.address
+        : "住所: 取得できませんでした";
 
- const address = document.createElement("p");
- address.textContent = item.checkOutAddress
-  ? "住所: " + item.checkOutAddress
-  : "住所: 取得できませんでした";
- out.appendChild(address);
+      div.append(addressText, mapLink, loc);
+    } else {
+      const loc = document.createElement("div");
+      loc.textContent = "GPS: 位置情報なし";
+      div.appendChild(loc);
+    }
 
- if (item.checkOutLocation) {
-  const loc = document.createElement("p");
-  loc.textContent = "GPS: " +
-   item.checkOutLocation.latitude + ", " +
-   item.checkOutLocation.longitude;
-  out.appendChild(loc);
+    if (item.checkOut) {
+      const out = document.createElement("div");
 
-  const link = document.createElement("a");
-  link.href = "https://www.google.com/maps?q=" +
-   item.checkOutLocation.latitude + "," +
-   item.checkOutLocation.longitude;
-  link.textContent = "Google Mapsで位置を確認";
-  link.target = "_blank";
-  link.rel = "noopener noreferrer";
-  out.appendChild(link);
- }
+      const title = document.createElement("strong");
+      title.textContent = "📍 退勤場所";
+      out.appendChild(title);
 
- div.appendChild(out);
-}
-history.appendChild(div);
+      const address = document.createElement("p");
+      address.textContent = item.checkOutAddress
+        ? "住所: " + item.checkOutAddress
+        : "住所: 取得できませんでした";
+      out.appendChild(address);
+
+      if (item.checkOutLocation) {
+        const loc = document.createElement("p");
+        loc.textContent =
+          "GPS: " + item.checkOutLocation.latitude +
+          ", " + item.checkOutLocation.longitude;
+        out.appendChild(loc);
+
+        const link = document.createElement("a");
+        link.href =
+          "https://www.google.com/maps?q=" +
+          item.checkOutLocation.latitude + "," +
+          item.checkOutLocation.longitude;
+        link.textContent = "Google Mapsで位置を確認";
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        out.appendChild(link);
+      }
+
+      div.appendChild(out);
+    }
+
     history.appendChild(div);
   });
 }
