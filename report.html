@@ -7,9 +7,7 @@
 <title>作業報告 | 現場つながる</title>
 
 <style>
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
   margin: 0;
@@ -73,8 +71,8 @@ button {
   cursor: pointer;
 }
 
-button:active {
-  opacity: .8;
+button:disabled {
+  background: #94a3b8;
 }
 
 .report-item {
@@ -96,6 +94,12 @@ button:active {
   text-decoration: none;
   font-weight: bold;
 }
+
+#message {
+  margin-top: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+}
 </style>
 </head>
 
@@ -116,6 +120,11 @@ button:active {
       <label for="employeeName">社員名</label>
       <input type="text" id="employeeName"
         placeholder="社員名を入力してください" required>
+
+      <label for="companyPin">会社共通PIN / Company PIN</label>
+      <input type="password" id="companyPin"
+        placeholder="会社共通PINを入力してください"
+        autocomplete="off" required>
 
       <label for="workDate">作業日</label>
       <input type="date" id="workDate" required>
@@ -139,7 +148,11 @@ button:active {
       <textarea id="problems"
         placeholder="問題や連絡事項があれば入力してください"></textarea>
 
-      <button type="submit">報告を保存する</button>
+      <button type="submit" id="submitBtn">
+        報告を保存する
+      </button>
+
+      <p id="message" role="status"></p>
 
     </form>
   </div>
@@ -155,6 +168,8 @@ button:active {
 
 </main>
 
+<script src="app-config.js"></script>
+
 <script>
 const REPORT_KEY = "genba_work_reports";
 
@@ -163,9 +178,16 @@ let reports = JSON.parse(
 );
 
 const form = document.getElementById("reportForm");
+const submitBtn = document.getElementById("submitBtn");
 
 document.getElementById("workDate").value =
   new Date().toLocaleDateString("en-CA");
+
+function showMessage(message, color = "#15803d") {
+  const el = document.getElementById("message");
+  el.textContent = message;
+  el.style.color = color;
+}
 
 function saveReports() {
   localStorage.setItem(REPORT_KEY, JSON.stringify(reports));
@@ -185,7 +207,8 @@ function renderReports() {
     div.className = "report-item";
 
     const title = document.createElement("strong");
-    title.textContent = item.employeeName + " / " + item.siteName;
+    title.textContent =
+      item.employeeName + " / " + item.siteName;
 
     const details = document.createElement("div");
     details.textContent =
@@ -204,35 +227,113 @@ function renderReports() {
   });
 }
 
-form.addEventListener("submit", function(event) {
+async function sendToDatabase(report) {
+  if (!window.GENBA_CONFIG ||
+      !window.GENBA_CONFIG.functionUrl ||
+      !window.GENBA_CONFIG.publishableKey) {
+    throw new Error("アプリ設定を確認してください");
+  }
+
+  const pin = document.getElementById("companyPin").value.trim();
+
+  if (!pin) {
+    throw new Error("会社共通PINを入力してください");
+  }
+
+  const response = await fetch(
+    window.GENBA_CONFIG.functionUrl,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": window.GENBA_CONFIG.publishableKey
+      },
+      body: JSON.stringify({
+        pin: pin,
+        table: "work_reports",
+        employee_name: report.employeeName,
+        record_data: report
+      })
+    }
+  );
+
+  const result = await response.json();
+
+  if (!response.ok || !result.success) {
+    throw new Error(
+      result.error || "Databaseへの保存に失敗しました"
+    );
+  }
+
+  return result;
+}
+
+form.addEventListener("submit", async function(event) {
   event.preventDefault();
 
+  if (!form.reportValidity()) return;
+
   const report = {
-    employeeName: document.getElementById("employeeName").value.trim(),
-    workDate: document.getElementById("workDate").value,
-    siteName: document.getElementById("siteName").value.trim(),
-    startTime: document.getElementById("startTime").value,
-    endTime: document.getElementById("endTime").value,
-    workDetails: document.getElementById("workDetails").value.trim(),
-    problems: document.getElementById("problems").value.trim(),
-    savedAt: new Date().toLocaleString("ja-JP")
+    employeeName:
+      document.getElementById("employeeName").value.trim(),
+
+    workDate:
+      document.getElementById("workDate").value,
+
+    siteName:
+      document.getElementById("siteName").value.trim(),
+
+    startTime:
+      document.getElementById("startTime").value,
+
+    endTime:
+      document.getElementById("endTime").value,
+
+    workDetails:
+      document.getElementById("workDetails").value.trim(),
+
+    problems:
+      document.getElementById("problems").value.trim(),
+
+    savedAt:
+      new Date().toLocaleString("ja-JP")
   };
 
-  if (!report.employeeName || !report.siteName ||
+  if (!report.employeeName ||
+      !report.siteName ||
       !report.workDetails) {
     alert("必須項目を入力してください");
     return;
   }
 
-  reports.unshift(report);
-  saveReports();
-  renderReports();
+  submitBtn.disabled = true;
+  submitBtn.textContent = "送信中...";
+  showMessage("Databaseに送信しています...", "#64748b");
 
-  alert("作業報告を保存しました！");
-  form.reset();
+  try {
+    await sendToDatabase(report);
 
-  document.getElementById("workDate").value =
-    new Date().toLocaleDateString("en-CA");
+    reports.unshift(report);
+    saveReports();
+    renderReports();
+
+    showMessage("作業報告をDatabaseに保存しました！");
+
+    alert("作業報告を保存しました！");
+
+    form.reset();
+
+    document.getElementById("workDate").value =
+      new Date().toLocaleDateString("en-CA");
+
+  } catch (error) {
+    showMessage("保存失敗：" + error.message, "#dc2626");
+    alert("作業報告を保存できませんでした。\n" + error.message);
+
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = "報告を保存する";
+  }
 });
 
 renderReports();
