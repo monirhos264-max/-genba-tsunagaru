@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -7,9 +8,7 @@
 <title>備品申請 | 現場つながる</title>
 
 <style>
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
   margin: 0;
@@ -46,7 +45,7 @@ label {
   margin: 16px 0 7px;
 }
 
-input, textarea, select {
+input, textarea {
   width: 100%;
   padding: 13px;
   border: 1px solid #cbd5e1;
@@ -71,6 +70,10 @@ button {
   font-size: 17px;
   font-weight: bold;
   cursor: pointer;
+}
+
+button:disabled {
+  background: #94a3b8;
 }
 
 .application {
@@ -101,6 +104,12 @@ button {
   text-decoration: none;
   font-weight: bold;
 }
+
+#message {
+  margin-top: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+}
 </style>
 </head>
 
@@ -122,6 +131,11 @@ button {
       <input type="text" id="employeeName"
         placeholder="社員名を入力してください" required>
 
+      <label for="companyPin">会社共通PIN / Company PIN</label>
+      <input type="password" id="companyPin"
+        placeholder="会社共通PINを入力してください"
+        autocomplete="off" required>
+
       <label for="siteName">現場名</label>
       <input type="text" id="siteName"
         placeholder="例：ファミールハイツ城東" required>
@@ -141,7 +155,11 @@ button {
       <textarea id="reason"
         placeholder="申請理由を入力してください" required></textarea>
 
-      <button type="submit">申請を保存する</button>
+      <button type="submit" id="submitBtn">
+        申請を保存する
+      </button>
+
+      <p id="message" role="status"></p>
 
     </form>
   </div>
@@ -157,6 +175,8 @@ button {
 
 </main>
 
+<script src="app-config.js"></script>
+
 <script>
 const STORAGE_KEY = "genba_equipment_requests";
 
@@ -165,9 +185,16 @@ let applications = JSON.parse(
 );
 
 const form = document.getElementById("equipmentForm");
+const submitBtn = document.getElementById("submitBtn");
 
 document.getElementById("requestDate").value =
   new Date().toLocaleDateString("en-CA");
+
+function showMessage(message, color = "#15803d") {
+  const el = document.getElementById("message");
+  el.textContent = message;
+  el.style.color = color;
+}
 
 function saveApplications() {
   localStorage.setItem(
@@ -204,15 +231,58 @@ function renderApplications() {
 
     const status = document.createElement("span");
     status.className = "status";
-    status.textContent = "申請受付";
+    status.textContent = item.status || "申請受付";
 
     div.append(title, details, status);
     history.appendChild(div);
   });
 }
 
-form.addEventListener("submit", function(event) {
+async function sendToDatabase(application) {
+  if (!window.GENBA_CONFIG ||
+      !window.GENBA_CONFIG.functionUrl ||
+      !window.GENBA_CONFIG.publishableKey) {
+    throw new Error("アプリ設定を確認してください");
+  }
+
+  const pin = document.getElementById("companyPin").value.trim();
+
+  if (!pin) {
+    throw new Error("会社共通PINを入力してください");
+  }
+
+  const response = await fetch(
+    window.GENBA_CONFIG.functionUrl,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": window.GENBA_CONFIG.publishableKey
+      },
+      body: JSON.stringify({
+        pin: pin,
+        table: "equipment_requests",
+        employee_name: application.employeeName,
+        record_data: application
+      })
+    }
+  );
+
+  const result = await response.json();
+
+  if (!response.ok || !result.success) {
+    throw new Error(
+      result.error || "Databaseへの保存に失敗しました"
+    );
+  }
+
+  return result;
+}
+
+form.addEventListener("submit", async function(event) {
   event.preventDefault();
+
+  if (!form.reportValidity()) return;
 
   const quantity = Number(
     document.getElementById("quantity").value
@@ -224,13 +294,27 @@ form.addEventListener("submit", function(event) {
   }
 
   const application = {
-    employeeName: document.getElementById("employeeName").value.trim(),
-    siteName: document.getElementById("siteName").value.trim(),
-    equipmentName: document.getElementById("equipmentName").value.trim(),
+    employeeName:
+      document.getElementById("employeeName").value.trim(),
+
+    siteName:
+      document.getElementById("siteName").value.trim(),
+
+    equipmentName:
+      document.getElementById("equipmentName").value.trim(),
+
     quantity: quantity,
-    requestDate: document.getElementById("requestDate").value,
-    reason: document.getElementById("reason").value.trim(),
-    savedAt: new Date().toLocaleString("ja-JP")
+
+    requestDate:
+      document.getElementById("requestDate").value,
+
+    reason:
+      document.getElementById("reason").value.trim(),
+
+    savedAt:
+      new Date().toLocaleString("ja-JP"),
+
+    status: "申請受付"
   };
 
   if (!application.employeeName ||
@@ -242,17 +326,33 @@ form.addEventListener("submit", function(event) {
     return;
   }
 
-  applications.unshift(application);
+  submitBtn.disabled = true;
+  submitBtn.textContent = "送信中...";
+  showMessage("Databaseに送信しています...", "#64748b");
 
-  saveApplications();
-  renderApplications();
+  try {
+    await sendToDatabase(application);
 
-  alert("備品申請を保存しました！");
+    applications.unshift(application);
+    saveApplications();
+    renderApplications();
 
-  form.reset();
+    showMessage("備品申請をDatabaseに保存しました！");
+    alert("備品申請を保存しました！");
 
-  document.getElementById("requestDate").value =
-    new Date().toLocaleDateString("en-CA");
+    form.reset();
+
+    document.getElementById("requestDate").value =
+      new Date().toLocaleDateString("en-CA");
+
+  } catch (error) {
+    showMessage("保存失敗：" + error.message, "#dc2626");
+    alert("備品申請を保存できませんでした。\n" + error.message);
+
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = "申請を保存する";
+  }
 });
 
 renderApplications();
