@@ -258,7 +258,7 @@ document.getElementById("logoutButton").addEventListener("click", async () => {
   await supabase.auth.signOut();
   window.location.replace("admin-login.html");
 });
-
+showStatus("JavaScript started successfully.");
 loadRecords();
 </script>
 
