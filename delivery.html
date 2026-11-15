@@ -1,0 +1,333 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>納品確認 | 現場つながる</title>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 18px;
+  background: #f1f5f9;
+  color: #1e293b;
+  font-family: Arial, sans-serif;
+}
+
+header {
+  background: #17365d;
+  color: white;
+  text-align: center;
+  padding: 22px;
+  border-radius: 14px;
+}
+
+.container {
+  max-width: 600px;
+  margin: 20px auto;
+}
+
+.card {
+  background: white;
+  padding: 22px;
+  margin-bottom: 18px;
+  border-radius: 14px;
+  box-shadow: 0 3px 10px rgba(0,0,0,.07);
+}
+
+label {
+  display: block;
+  font-weight: bold;
+  margin: 16px 0 7px;
+}
+
+input, textarea, select {
+  width: 100%;
+  padding: 13px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 16px;
+  background: white;
+}
+
+textarea {
+  min-height: 75px;
+  resize: vertical;
+}
+
+button {
+  width: 100%;
+  padding: 15px;
+  margin-top: 20px;
+  border: none;
+  border-radius: 9px;
+  background: #15803d;
+  color: white;
+  font-size: 17px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.delivery-item {
+  border-bottom: 1px solid #e2e8f0;
+  padding: 15px 0;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+
+.delivery-item:last-child {
+  border-bottom: none;
+}
+
+.status {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 6px;
+  background: #dcfce7;
+  color: #166534;
+  font-weight: bold;
+  margin-top: 8px;
+}
+
+.status.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.preview {
+  display: block;
+  max-width: 100%;
+  max-height: 220px;
+  margin-top: 10px;
+  border-radius: 8px;
+}
+
+.back {
+  display: block;
+  text-align: center;
+  margin: 22px 0;
+  color: #17365d;
+  text-decoration: none;
+  font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h2>現場つながる</h2>
+  <p>納品確認システム</p>
+</header>
+
+<main class="container">
+
+<div class="card">
+  <h3>📦 納品情報を登録</h3>
+
+  <form id="deliveryForm">
+
+    <label for="employeeName">社員名</label>
+    <input id="employeeName" type="text"
+      placeholder="社員名を入力してください" required>
+
+    <label for="siteName">現場名</label>
+    <input id="siteName" type="text"
+      placeholder="例：ファミールハイツ城東" required>
+
+    <label for="supplier">納品業者</label>
+    <input id="supplier" type="text"
+      placeholder="業者名を入力してください">
+
+    <label for="productName">納品物</label>
+    <input id="productName" type="text"
+      placeholder="例：トイレットペーパー、洗剤" required>
+
+    <label for="quantity">数量</label>
+    <input id="quantity" type="number"
+      min="1" step="1" placeholder="数量" required>
+
+    <label for="deliveryDate">納品日</label>
+    <input id="deliveryDate" type="date" required>
+
+    <label for="status">受取状況</label>
+    <select id="status" required>
+      <option value="受取済み">受取済み</option>
+      <option value="未受取">未受取</option>
+      <option value="一部受取">一部受取</option>
+      <option value="不備あり">不備あり</option>
+    </select>
+
+    <label for="remarks">備考・連絡事項</label>
+    <textarea id="remarks"
+      placeholder="不足や破損などがあれば入力してください"></textarea>
+
+    <label for="photo">納品写真</label>
+    <input id="photo" type="file" accept="image/*">
+
+    <button type="submit">納品情報を保存する</button>
+
+  </form>
+</div>
+
+<div class="card">
+  <h3>📋 納品履歴</h3>
+  <div id="deliveryHistory">納品記録はありません</div>
+</div>
+
+<a class="back" href="dashboard.html">
+  ← ダッシュボードへ戻る
+</a>
+
+</main>
+
+<script>
+const STORAGE_KEY = "genba_delivery_records";
+
+let deliveries = JSON.parse(
+  localStorage.getItem(STORAGE_KEY) || "[]"
+);
+
+const form = document.getElementById("deliveryForm");
+
+document.getElementById("deliveryDate").value =
+  new Date().toLocaleDateString("en-CA");
+
+function saveDeliveries() {
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify(deliveries)
+  );
+}
+
+function renderDeliveries() {
+  const history = document.getElementById("deliveryHistory");
+  history.replaceChildren();
+
+  if (deliveries.length === 0) {
+    history.textContent = "納品記録はありません";
+    return;
+  }
+
+  deliveries.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "delivery-item";
+
+    const title = document.createElement("strong");
+    title.textContent = item.productName + " × " + item.quantity;
+
+    const details = document.createElement("div");
+    details.style.whiteSpace = "pre-line";
+    details.textContent =
+      "社員名: " + item.employeeName +
+      "\n現場名: " + item.siteName +
+      "\n納品業者: " + (item.supplier || "未入力") +
+      "\n納品日: " + item.deliveryDate +
+      "\n受取状況: " + item.status +
+      "\n備考: " + (item.remarks || "なし") +
+      "\n登録日時: " + item.savedAt;
+
+    const status = document.createElement("span");
+    status.className = item.status === "受取済み"
+      ? "status"
+      : "status pending";
+    status.textContent = item.status;
+
+    div.append(title, details, status);
+
+    if (item.photo) {
+      const img = document.createElement("img");
+      img.src = item.photo;
+      img.alt = "納品写真";
+      img.className = "preview";
+      div.appendChild(img);
+    }
+
+    history.appendChild(div);
+  });
+}
+
+form.addEventListener("submit", function(event) {
+  event.preventDefault();
+
+  const quantity = Number(
+    document.getElementById("quantity").value
+  );
+
+  if (!Number.isInteger(quantity) || quantity < 1) {
+    alert("数量は1以上の整数で入力してください");
+    return;
+  }
+
+  const photoFile = document.getElementById("photo").files[0];
+
+  if (photoFile && photoFile.size > 1500000) {
+    alert("写真は1.5MB以下のものを選択してください");
+    return;
+  }
+
+  function saveRecord(photoData) {
+    const record = {
+      employeeName: document.getElementById("employeeName").value.trim(),
+      siteName: document.getElementById("siteName").value.trim(),
+      supplier: document.getElementById("supplier").value.trim(),
+      productName: document.getElementById("productName").value.trim(),
+      quantity: quantity,
+      deliveryDate: document.getElementById("deliveryDate").value,
+      status: document.getElementById("status").value,
+      remarks: document.getElementById("remarks").value.trim(),
+      photo: photoData,
+      savedAt: new Date().toLocaleString("ja-JP")
+    };
+
+    if (!record.employeeName ||
+        !record.siteName ||
+        !record.productName ||
+        !record.deliveryDate) {
+      alert("必須項目を入力してください");
+      return;
+    }
+
+    deliveries.unshift(record);
+
+    try {
+      saveDeliveries();
+    } catch (error) {
+      deliveries.shift();
+      alert("保存容量が不足しています。写真を小さくして再度お試しください。");
+      return;
+    }
+
+    renderDeliveries();
+    alert("納品情報を保存しました！");
+    form.reset();
+
+    document.getElementById("deliveryDate").value =
+      new Date().toLocaleDateString("en-CA");
+  }
+
+  if (photoFile) {
+    const reader = new FileReader();
+
+    reader.onload = function() {
+      saveRecord(reader.result);
+    };
+
+    reader.onerror = function() {
+      alert("写真を読み込めませんでした");
+    };
+
+    reader.readAsDataURL(photoFile);
+  } else {
+    saveRecord("");
+  }
+});
+
+renderDeliveries();
+</script>
+
+</body>
+</html>
