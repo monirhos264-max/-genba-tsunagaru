@@ -1,344 +1,282 @@
 
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>作業履歴 | 現場つながる</title>
 
 <style>
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  padding: 18px;
-  background: #f1f5f9;
-  color: #1e293b;
-  font-family: Arial, sans-serif;
-}
-
-header {
-  background: #17365d;
-  color: white;
-  text-align: center;
-  padding: 22px;
-  border-radius: 14px;
-}
-
-.container {
-  max-width: 700px;
-  margin: 20px auto;
-}
-
-.card {
-  background: white;
-  padding: 20px;
-  margin-bottom: 18px;
-  border-radius: 14px;
-  box-shadow: 0 3px 10px rgba(0,0,0,.07);
-}
-
-.summary {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-.summary-item {
-  background: #f8fafc;
-  padding: 16px;
-  border-radius: 10px;
-  text-align: center;
-}
-
-.summary-number {
-  font-size: 25px;
-  font-weight: bold;
-  color: #17365d;
-  margin-top: 8px;
-}
-
-input, select {
-  width: 100%;
-  padding: 13px;
-  margin-top: 10px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  font-size: 16px;
-  background: white;
-}
-
-.history-item {
-  border-bottom: 1px solid #e2e8f0;
-  padding: 16px 0;
-  line-height: 1.8;
-  overflow-wrap: anywhere;
-}
-
-.history-item:last-child {
-  border-bottom: none;
-}
-
-.history-type {
-  display: inline-block;
-  padding: 5px 10px;
-  border-radius: 6px;
-  background: #dbeafe;
-  color: #1e40af;
-  font-weight: bold;
-  margin-bottom: 8px;
-}
-
-.history-details {
-  white-space: pre-line;
-}
-
-.empty {
-  color: #64748b;
-  text-align: center;
-  padding: 20px 0;
-}
-
-.back {
-  display: block;
-  text-align: center;
-  margin: 22px 0;
-  color: #17365d;
-  text-decoration: none;
-  font-weight: bold;
-}
+*{box-sizing:border-box}
+body{margin:0;background:#f1f5f9;color:#1e293b;font-family:Arial,sans-serif}
+header{background:#1e3a8a;color:white;padding:17px 20px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+header h2{margin:0;font-size:19px}
+header a{color:#1e3a8a;background:white;text-decoration:none;padding:10px 13px;border-radius:7px;font-weight:bold;font-size:14px}
+main{max-width:1100px;margin:auto;padding:18px}
+.panel{background:white;padding:18px;border-radius:12px;margin-bottom:18px;box-shadow:0 2px 8px #00000008}
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:18px}
+.summary-card{background:white;padding:16px;border-radius:12px;box-shadow:0 2px 8px #00000008}
+.number{font-size:26px;font-weight:bold;color:#1d4ed8;margin-top:8px}
+.controls{display:flex;gap:10px;flex-wrap:wrap}
+input,select{padding:12px;border:1px solid #cbd5e1;border-radius:8px;font-size:15px;min-width:0}
+input{flex:1;min-width:160px}
+button{border:0;border-radius:8px;padding:11px 15px;font-weight:bold;cursor:pointer}
+.refresh{background:#1d4ed8;color:white}
+.status{padding:12px;border-radius:8px;background:#eff6ff;color:#1e40af;margin-bottom:15px}
+.error{background:#fef2f2;color:#b91c1c}
+.record{border:1px solid #e2e8f0;border-radius:9px;padding:14px;margin-bottom:12px;overflow-wrap:anywhere}
+.record-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.name{font-weight:bold;font-size:16px}
+.date{font-size:13px;color:#64748b}
+.category{display:inline-block;background:#e0e7ff;color:#3730a3;padding:5px 9px;border-radius:6px;font-size:13px;margin:5px 0}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f8fafc;padding:12px;border-radius:7px;font-size:13px;line-height:1.5}
+.empty{text-align:center;color:#64748b;padding:25px}
+h3{margin-top:0}
+@media(max-width:600px){main{padding:12px}.panel{padding:13px}header h2{font-size:16px}}
 </style>
 </head>
 
 <body>
 
 <header>
-  <h2>現場つながる</h2>
-  <p>作業履歴・業務記録</p>
+  <h2>現場つながる | 作業履歴</h2>
+  <a href="admin-dashboard.html">管理者画面へ戻る</a>
 </header>
 
-<main class="container">
+<main>
 
-  <div class="card">
-    <h3>📊 業務記録サマリー</h3>
+  <div class="panel">
+    <h2>作業履歴一覧</h2>
+    <p>全従業員の作業記録を確認できます。</p>
+    <div id="status" class="status">ログインを確認しています...</div>
+  </div>
 
-    <div class="summary">
-      <div class="summary-item">
-        出勤記録
-        <div class="summary-number" id="attendanceCount">0</div>
-      </div>
+  <div class="summary">
+    <div class="summary-card">出勤・退勤<div class="number" id="attendanceCount">0</div></div>
+    <div class="summary-card">作業報告<div class="number" id="reportCount">0</div></div>
+    <div class="summary-card">備品申請<div class="number" id="equipmentCount">0</div></div>
+    <div class="summary-card">納品確認<div class="number" id="deliveryCount">0</div></div>
+    <div class="summary-card">位置情報<div class="number" id="locationCount">0</div></div>
+  </div>
 
-      <div class="summary-item">
-        作業報告
-        <div class="summary-number" id="reportCount">0</div>
-      </div>
+  <section class="panel">
+    <h3>履歴検索</h3>
 
-      <div class="summary-item">
-        備品申請
-        <div class="summary-number" id="equipmentCount">0</div>
-      </div>
+    <div class="controls">
+      <input id="searchInput" type="search" placeholder="従業員名で検索">
 
-      <div class="summary-item">
-        納品確認
-        <div class="summary-number" id="deliveryCount">0</div>
-      </div>
+      <select id="typeFilter">
+        <option value="all">すべて表示</option>
+        <option value="attendance_records">出勤・退勤</option>
+        <option value="work_reports">作業報告</option>
+        <option value="equipment_requests">備品申請</option>
+        <option value="delivery_records">納品確認</option>
+        <option value="location_records">位置情報</option>
+      </select>
+
+      <button class="refresh" id="refreshButton">データ更新</button>
     </div>
-  </div>
+  </section>
 
-  <div class="card">
-    <h3>🔎 履歴検索</h3>
-
-    <label for="searchName">社員名で検索</label>
-    <input type="search" id="searchName"
-      placeholder="社員名を入力してください">
-
-    <label for="typeFilter">記録の種類</label>
-    <select id="typeFilter">
-      <option value="all">すべて表示</option>
-      <option value="attendance">出勤・退勤</option>
-      <option value="report">作業報告</option>
-      <option value="equipment">備品申請</option>
-      <option value="delivery">納品確認</option>
-    </select>
-  </div>
-
-  <div class="card">
-    <h3>📚 業務履歴一覧</h3>
-    <div id="historyList"></div>
-  </div>
-
-  <a class="back" href="dashboard.html">
-    ← ダッシュボードへ戻る
-  </a>
+  <section class="panel">
+    <h3>記録一覧</h3>
+    <div id="records">
+      <p class="empty">読み込み中...</p>
+    </div>
+  </section>
 
 </main>
 
+<script src="app-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
-const attendance = JSON.parse(
-  localStorage.getItem("genba_attendance") || "[]"
-);
+const config = window.GENBA_CONFIG;
 
-const reports = JSON.parse(
-  localStorage.getItem("genba_work_reports") || "[]"
-);
-
-const equipment = JSON.parse(
-  localStorage.getItem("genba_equipment_requests") || "[]"
-);
-
-const deliveries = JSON.parse(
-  localStorage.getItem("genba_delivery_records") || "[]"
-);
-
-document.getElementById("attendanceCount").textContent =
-  attendance.length;
-
-document.getElementById("reportCount").textContent =
-  reports.length;
-
-document.getElementById("equipmentCount").textContent =
-  equipment.length;
-
-document.getElementById("deliveryCount").textContent =
-  deliveries.length;
-
-function createHistory() {
-  const all = [];
-
-  attendance.forEach(item => {
-    all.push({
-      type: "attendance",
-      typeName: "📋 出勤・退勤",
-      employee: item.employeeName || "未登録",
-      date: item.date || "",
-      sortDate: item.date || "",
-      details:
-        "出勤時間: " + (item.checkIn || "未登録") +
-        "\n退勤時間: " + (item.checkOut || "勤務中") +
-        "\n出勤場所: " + (item.address || "住所なし") +
-        "\n退勤場所: " + (item.checkOutAddress || "住所なし")
-    });
-  });
-
-  reports.forEach(item => {
-    all.push({
-      type: "report",
-      typeName: "🧹 作業報告",
-      employee: item.employeeName || "未登録",
-      date: item.workDate || "",
-      sortDate: item.savedAt || item.workDate || "",
-      details:
-        "現場名: " + (item.siteName || "") +
-        "\n作業日: " + (item.workDate || "") +
-        "\n作業時間: " + (item.startTime || "") +
-        " ～ " + (item.endTime || "") +
-        "\n作業内容: " + (item.workDetails || "") +
-        "\n連絡事項: " + (item.problems || "なし")
-    });
-  });
-
-  equipment.forEach(item => {
-    all.push({
-      type: "equipment",
-      typeName: "🛠️ 備品申請",
-      employee: item.employeeName || "未登録",
-      date: item.requestDate || "",
-      sortDate: item.savedAt || item.requestDate || "",
-      details:
-        "現場名: " + (item.siteName || "") +
-        "\n備品名: " + (item.equipmentName || "") +
-        "\n数量: " + (item.quantity || "") +
-        "\n希望日: " + (item.requestDate || "") +
-        "\n申請理由: " + (item.reason || "")
-    });
-  });
-
-  deliveries.forEach(item => {
-    all.push({
-      type: "delivery",
-      typeName: "📦 納品確認",
-      employee: item.employeeName || "未登録",
-      date: item.deliveryDate || "",
-      sortDate: item.savedAt || item.deliveryDate || "",
-      details:
-        "現場名: " + (item.siteName || "") +
-        "\n納品業者: " + (item.supplier || "未入力") +
-        "\n納品物: " + (item.productName || "") +
-        "\n数量: " + (item.quantity || "") +
-        "\n納品日: " + (item.deliveryDate || "") +
-        "\n受取状況: " + (item.status || "") +
-        "\n備考: " + (item.remarks || "なし")
-    });
-  });
-
-  return all;
+if (!config || !config.publishableKey || !config.functionUrl) {
+  document.getElementById("status").textContent =
+    "アプリ設定を読み込めません。";
+  document.getElementById("status").classList.add("error");
+  throw new Error("Missing app configuration");
 }
 
-function renderHistory() {
-  const search = document.getElementById("searchName")
+const supabase = window.supabase.createClient(
+  "https://woyappmxwoutbsyljpil.supabase.co",
+  config.publishableKey
+);
+
+const adminApiUrl = config.functionUrl.replace(
+  "/genba-api",
+  "/genba-admin-api"
+);
+
+const tableNames = {
+  attendance_records: "出勤・退勤",
+  work_reports: "作業報告",
+  equipment_requests: "備品申請",
+  delivery_records: "納品確認",
+  location_records: "位置情報"
+};
+
+const countIds = {
+  attendance_records: "attendanceCount",
+  work_reports: "reportCount",
+  equipment_requests: "equipmentCount",
+  delivery_records: "deliveryCount",
+  location_records: "locationCount"
+};
+
+let allRecords = [];
+
+function showStatus(message, error = false) {
+  const box = document.getElementById("status");
+  box.textContent = message;
+  box.className = error ? "status error" : "status";
+}
+
+async function getSession() {
+  const { data, error } = await supabase.auth.getSession();
+
+  if (error || !data.session) {
+    window.location.replace("admin-login.html");
+    return null;
+  }
+
+  return data.session;
+}
+
+async function loadRecords() {
+  showStatus("データを読み込んでいます...");
+  document.getElementById("records").textContent = "読み込み中...";
+
+  const session = await getSession();
+  if (!session) return;
+
+  try {
+    const response = await fetch(adminApiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": config.publishableKey,
+        "Authorization": "Bearer " + session.access_token
+      },
+      body: JSON.stringify({
+        action: "list",
+        tables: Object.keys(tableNames)
+      })
+    });
+
+    const result = await response.json();
+
+    if (response.status === 401) {
+      await supabase.auth.signOut();
+      window.location.replace("admin-login.html");
+      return;
+    }
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || "データ取得に失敗しました");
+    }
+
+    allRecords = [];
+
+    Object.keys(tableNames).forEach(table => {
+      const rows = result.data[table] || [];
+
+      document.getElementById(countIds[table]).textContent =
+        rows.length;
+
+      rows.forEach(row => {
+        allRecords.push({...row, table});
+      });
+    });
+
+    allRecords.sort((a,b) =>
+      new Date(b.created_at) - new Date(a.created_at)
+    );
+
+    showStatus("データを正常に読み込みました。");
+    renderRecords();
+
+  } catch (error) {
+    showStatus("エラー: " + error.message, true);
+    document.getElementById("records").textContent =
+      "データを取得できませんでした。";
+  }
+}
+
+function renderRecords() {
+  const search = document.getElementById("searchInput")
     .value.trim().toLowerCase();
 
   const filter = document.getElementById("typeFilter").value;
 
-  const historyList = document.getElementById("historyList");
-  historyList.replaceChildren();
+  const filtered = allRecords.filter(record => {
+    const name = (record.employee_name || "").toLowerCase();
 
-  let all = createHistory();
-
-  all = all.filter(item => {
-    const matchesName =
-      item.employee.toLowerCase().includes(search);
-
-    const matchesType =
-      filter === "all" || item.type === filter;
-
-    return matchesName && matchesType;
+    return name.includes(search) &&
+      (filter === "all" || record.table === filter);
   });
 
-  all.sort((a, b) =>
-    b.sortDate.localeCompare(a.sortDate)
-  );
+  const container = document.getElementById("records");
+  container.replaceChildren();
 
-  if (all.length === 0) {
-    historyList.textContent = "該当する履歴はありません";
-    historyList.className = "empty";
+  if (filtered.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty";
+    empty.textContent = "該当するデータはありません。";
+    container.appendChild(empty);
     return;
   }
 
-  historyList.className = "";
+  filtered.forEach(record => {
+    const card = document.createElement("div");
+    card.className = "record";
 
-  all.forEach(item => {
-    const div = document.createElement("div");
-    div.className = "history-item";
+    const head = document.createElement("div");
+    head.className = "record-head";
 
-    const type = document.createElement("div");
-    type.className = "history-type";
-    type.textContent = item.typeName;
-
-    const name = document.createElement("strong");
-    name.textContent = "社員名: " + item.employee;
+    const name = document.createElement("div");
+    name.className = "name";
+    name.textContent = record.employee_name || "名前なし";
 
     const date = document.createElement("div");
-    date.textContent = "日付: " + item.date;
+    date.className = "date";
 
-    const details = document.createElement("div");
-    details.className = "history-details";
-    details.textContent = item.details;
+    const parsed = new Date(record.created_at);
+    date.textContent = Number.isNaN(parsed.getTime())
+      ? ""
+      : parsed.toLocaleString("ja-JP");
 
-    div.append(type, name, date, details);
-    historyList.appendChild(div);
+    head.append(name, date);
+
+    const category = document.createElement("div");
+    category.className = "category";
+    category.textContent = tableNames[record.table];
+
+    const details = document.createElement("pre");
+    details.textContent = JSON.stringify(
+      record.record_data || {},
+      null,
+      2
+    );
+
+    card.append(head, category, details);
+    container.appendChild(card);
   });
 }
 
-document.getElementById("searchName")
-  .addEventListener("input", renderHistory);
+document.getElementById("searchInput")
+  .addEventListener("input", renderRecords);
 
 document.getElementById("typeFilter")
-  .addEventListener("change", renderHistory);
+  .addEventListener("change", renderRecords);
 
-renderHistory();
+document.getElementById("refreshButton")
+  .addEventListener("click", loadRecords);
+
+loadRecords();
 </script>
 
 </body>
