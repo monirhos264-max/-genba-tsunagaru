@@ -1,0 +1,242 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>作業報告 | 現場つながる</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 18px;
+  background: #f1f5f9;
+  color: #1e293b;
+  font-family: Arial, sans-serif;
+}
+
+header {
+  background: #17365d;
+  color: white;
+  text-align: center;
+  padding: 22px;
+  border-radius: 14px;
+}
+
+.container {
+  max-width: 600px;
+  margin: 20px auto;
+}
+
+.card {
+  background: white;
+  padding: 22px;
+  margin-bottom: 18px;
+  border-radius: 14px;
+  box-shadow: 0 3px 10px rgba(0,0,0,.07);
+}
+
+label {
+  display: block;
+  font-weight: bold;
+  margin: 16px 0 7px;
+}
+
+input, textarea {
+  width: 100%;
+  padding: 13px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 16px;
+  background: white;
+}
+
+textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+button {
+  width: 100%;
+  padding: 15px;
+  margin-top: 20px;
+  border: none;
+  border-radius: 9px;
+  background: #15803d;
+  color: white;
+  font-size: 17px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+button:active {
+  opacity: .8;
+}
+
+.report-item {
+  border-bottom: 1px solid #e2e8f0;
+  padding: 15px 0;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+
+.report-item:last-child {
+  border-bottom: none;
+}
+
+.back {
+  display: block;
+  text-align: center;
+  margin: 22px 0;
+  color: #17365d;
+  text-decoration: none;
+  font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h2>現場つながる</h2>
+  <p>作業報告システム</p>
+</header>
+
+<main class="container">
+
+  <div class="card">
+    <h3>📝 作業報告を入力</h3>
+
+    <form id="reportForm">
+
+      <label for="employeeName">社員名</label>
+      <input type="text" id="employeeName"
+        placeholder="社員名を入力してください" required>
+
+      <label for="workDate">作業日</label>
+      <input type="date" id="workDate" required>
+
+      <label for="siteName">現場名</label>
+      <input type="text" id="siteName"
+        placeholder="例：ファミールハイツ城東" required>
+
+      <label for="startTime">作業開始時間</label>
+      <input type="time" id="startTime" required>
+
+      <label for="endTime">作業終了時間</label>
+      <input type="time" id="endTime" required>
+
+      <label for="workDetails">作業内容</label>
+      <textarea id="workDetails"
+        placeholder="本日の作業内容を入力してください"
+        required></textarea>
+
+      <label for="problems">問題・連絡事項</label>
+      <textarea id="problems"
+        placeholder="問題や連絡事項があれば入力してください"></textarea>
+
+      <button type="submit">報告を保存する</button>
+
+    </form>
+  </div>
+
+  <div class="card">
+    <h3>📚 作業報告履歴</h3>
+    <div id="reportHistory">報告はまだありません</div>
+  </div>
+
+  <a class="back" href="dashboard.html">
+    ← ダッシュボードへ戻る
+  </a>
+
+</main>
+
+<script>
+const REPORT_KEY = "genba_work_reports";
+
+let reports = JSON.parse(
+  localStorage.getItem(REPORT_KEY) || "[]"
+);
+
+const form = document.getElementById("reportForm");
+
+document.getElementById("workDate").value =
+  new Date().toLocaleDateString("en-CA");
+
+function saveReports() {
+  localStorage.setItem(REPORT_KEY, JSON.stringify(reports));
+}
+
+function renderReports() {
+  const history = document.getElementById("reportHistory");
+  history.replaceChildren();
+
+  if (reports.length === 0) {
+    history.textContent = "報告はまだありません";
+    return;
+  }
+
+  reports.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "report-item";
+
+    const title = document.createElement("strong");
+    title.textContent = item.employeeName + " / " + item.siteName;
+
+    const details = document.createElement("div");
+    details.textContent =
+      "作業日: " + item.workDate +
+      "\n作業時間: " + item.startTime + " ～ " + item.endTime +
+      "\n作業内容: " + item.workDetails +
+      "\n問題・連絡事項: " + (item.problems || "なし");
+
+    details.style.whiteSpace = "pre-line";
+
+    const time = document.createElement("small");
+    time.textContent = "保存日時: " + item.savedAt;
+
+    div.append(title, details, time);
+    history.appendChild(div);
+  });
+}
+
+form.addEventListener("submit", function(event) {
+  event.preventDefault();
+
+  const report = {
+    employeeName: document.getElementById("employeeName").value.trim(),
+    workDate: document.getElementById("workDate").value,
+    siteName: document.getElementById("siteName").value.trim(),
+    startTime: document.getElementById("startTime").value,
+    endTime: document.getElementById("endTime").value,
+    workDetails: document.getElementById("workDetails").value.trim(),
+    problems: document.getElementById("problems").value.trim(),
+    savedAt: new Date().toLocaleString("ja-JP")
+  };
+
+  if (!report.employeeName || !report.siteName ||
+      !report.workDetails) {
+    alert("必須項目を入力してください");
+    return;
+  }
+
+  reports.unshift(report);
+  saveReports();
+  renderReports();
+
+  alert("作業報告を保存しました！");
+  form.reset();
+
+  document.getElementById("workDate").value =
+    new Date().toLocaleDateString("en-CA");
+});
+
+renderReports();
+</script>
+
+</body>
+</html>
