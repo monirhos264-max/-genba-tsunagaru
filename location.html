@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -127,6 +128,14 @@ button:disabled {
       required
     >
 
+    <label for="companyPin">会社 PIN</label>
+    <input
+      type="password"
+      id="companyPin"
+      placeholder="会社 PIN を入力してください"
+      required
+    >
+
     <button id="locationBtn" type="button">
       現在地を取得する
     </button>
@@ -148,6 +157,8 @@ button:disabled {
   </a>
 
 </main>
+
+<script src="app-config.js"></script>
 
 <script>
 const STORAGE_KEY = "genba_location_history";
@@ -186,13 +197,57 @@ function getCurrentPosition() {
   });
 }
 
+async function sendToDatabase(record, pin) {
+  if (!window.GENBA_CONFIG ||
+      !window.GENBA_CONFIG.functionUrl ||
+      !window.GENBA_CONFIG.publishableKey) {
+    throw new Error("アプリ設定を確認してください");
+  }
+
+  const response = await fetch(
+    window.GENBA_CONFIG.functionUrl,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": window.GENBA_CONFIG.publishableKey
+      },
+      body: JSON.stringify({
+        pin: pin,
+        table: "location_records",
+        employee_name: record.employeeName,
+        record_data: record
+      })
+    }
+  );
+
+  const result = await response.json();
+
+  if (!response.ok || !result.success) {
+    throw new Error(
+      result.error || "データベースへの保存に失敗しました"
+    );
+  }
+
+  return result;
+}
+
 button.addEventListener("click", async function() {
   const employeeName = document
     .getElementById("employeeName")
     .value.trim();
 
+  const pin = document
+    .getElementById("companyPin")
+    .value.trim();
+
   if (!employeeName) {
     alert("社員名を入力してください");
+    return;
+  }
+
+  if (!pin) {
+    alert("会社 PIN を入力してください");
     return;
   }
 
@@ -211,13 +266,17 @@ button.addEventListener("click", async function() {
       recordedAt: new Date().toLocaleString("ja-JP")
     };
 
+    message.textContent = "データベースに保存しています...";
+
+    await sendToDatabase(record, pin);
+
     locations.unshift(record);
 
     try {
       saveLocations();
     } catch (error) {
       locations.shift();
-      throw new Error("保存容量が不足しています");
+      console.error("Local storage save failed:", error);
     }
 
     renderLocations();
@@ -244,9 +303,12 @@ button.addEventListener("click", async function() {
 
     currentLocation.append(details, mapLink);
 
-    message.textContent = "位置情報を保存しました！";
+    message.textContent =
+      "位置情報をデータベースに保存しました！";
 
   } catch (error) {
+    console.error(error);
+
     let errorMessage = "位置情報を取得できませんでした。";
 
     if (error.code === 1) {
