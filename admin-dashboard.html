@@ -5,189 +5,212 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>管理者ダッシュボード | 現場つながる</title>
+  <title>現場つながる | Admin Dashboard</title>
 
   <script src="app-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      padding: 20px;
-      font-family: Arial, sans-serif;
-      background: #f3f5f8;
-      color: #222;
+      padding: 18px;
+      background: #f2f5f9;
+      color: #243247;
+      font-family: Arial, "Noto Sans JP", sans-serif;
     }
 
-    .container {
-      max-width: 1100px;
-      margin: auto;
-    }
+    .container { max-width: 1150px; margin: auto; }
 
     header {
-      background: #173b65;
+      background: linear-gradient(120deg, #173b65, #246b9c);
       color: white;
-      padding: 22px;
-      border-radius: 12px;
+      padding: 25px;
+      border-radius: 14px;
       margin-bottom: 20px;
     }
 
-    header h1 {
-      margin: 0 0 8px;
-      font-size: 24px;
-    }
+    header h1 { margin: 0 0 7px; font-size: 25px; }
+    header p { margin: 4px 0; color: #e1eaf4; }
 
-    header p {
-      margin: 0;
-      color: #e2eaf5;
-    }
-
-    .toolbar {
+    .toolbar, .filters {
       display: flex;
-      gap: 10px;
       flex-wrap: wrap;
+      gap: 10px;
       margin-bottom: 18px;
     }
 
     button {
+      padding: 12px 18px;
       border: none;
-      border-radius: 7px;
-      padding: 12px 17px;
-      font-size: 14px;
-      cursor: pointer;
+      border-radius: 8px;
       background: #1769aa;
       color: white;
+      font-weight: bold;
+      cursor: pointer;
     }
 
-    button.logout {
-      background: #b83232;
-    }
+    button.logout { background: #b83232; }
 
     .status {
       background: white;
+      border-radius: 9px;
       padding: 14px;
-      border-radius: 8px;
       margin-bottom: 18px;
       overflow-wrap: anywhere;
+      font-size: 14px;
     }
 
     .summary {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
       gap: 12px;
-      margin-bottom: 22px;
+      margin-bottom: 25px;
     }
 
     .summary-card {
       background: white;
-      padding: 18px;
-      border-radius: 10px;
-      box-shadow: 0 2px 7px #0000000c;
+      padding: 17px;
+      border-radius: 11px;
+      box-shadow: 0 2px 8px #0000000a;
     }
 
     .summary-card h3 {
-      margin: 0 0 10px;
-      font-size: 14px;
-      color: #555;
+      margin: 0 0 9px;
+      font-size: 13px;
+      color: #68778b;
     }
 
-    .count {
-      font-size: 28px;
-      font-weight: bold;
-      color: #1769aa;
-    }
+    .count { font-size: 29px; font-weight: bold; color: #1769aa; }
 
-    .search-area {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
+    h2.section-title { font-size: 19px; margin: 25px 0 13px; }
 
     input, select {
-      padding: 12px;
-      border: 1px solid #ccc;
-      border-radius: 7px;
-      font-size: 15px;
-      background: white;
+      min-width: 160px;
       flex: 1;
-      min-width: 180px;
-    }
-
-    .section-title {
-      margin: 20px 0 12px;
-      font-size: 19px;
+      padding: 12px;
+      border: 1px solid #d5dce5;
+      border-radius: 8px;
+      background: white;
+      font-size: 14px;
     }
 
     .record-card {
       background: white;
-      padding: 17px;
-      border-radius: 10px;
-      margin-bottom: 12px;
-      box-shadow: 0 2px 7px #0000000c;
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 9px #0000000b;
       overflow-wrap: anywhere;
     }
 
     .record-head {
       display: flex;
       justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
       flex-wrap: wrap;
-      gap: 8px;
-      border-bottom: 1px solid #eee;
-      padding-bottom: 10px;
-      margin-bottom: 10px;
+      padding-bottom: 13px;
+      border-bottom: 1px solid #edf0f4;
+      margin-bottom: 14px;
     }
 
-    .record-name {
-      font-weight: bold;
-      font-size: 17px;
-    }
+    .employee-name { font-size: 19px; font-weight: bold; }
+    .record-date { color: #738196; font-size: 13px; margin-top: 5px; }
 
-    .record-category {
+    .category {
+      background: #eaf3fc;
       color: #1769aa;
-      font-size: 13px;
+      padding: 7px 11px;
+      border-radius: 20px;
+      font-size: 12px;
       font-weight: bold;
     }
 
-    .record-date {
-      color: #666;
-      font-size: 13px;
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 10px;
     }
 
-    pre {
+    .field {
+      background: #f7f9fc;
+      padding: 12px;
+      border-radius: 8px;
+      min-width: 0;
+    }
+
+    .field-label {
+      color: #748196;
+      font-size: 12px;
+      margin-bottom: 7px;
+    }
+
+    .field-value {
+      font-size: 14px;
+      font-weight: 600;
       white-space: pre-wrap;
       overflow-wrap: anywhere;
-      font-size: 13px;
-      line-height: 1.6;
-      background: #f7f8fa;
-      padding: 12px;
-      border-radius: 7px;
+    }
+
+    .subsection {
+      margin-top: 15px;
+      padding-top: 13px;
+      border-top: 1px solid #edf0f4;
+    }
+
+    .subsection-title {
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #315779;
+    }
+
+    .map-link {
+      display: inline-block;
+      margin-top: 9px;
+      color: #1769aa;
+      font-weight: bold;
+      text-decoration: none;
+    }
+
+    .photo {
+      display: block;
+      width: 100%;
+      max-width: 420px;
+      max-height: 350px;
+      object-fit: contain;
+      border-radius: 9px;
+      background: #f1f3f5;
+      margin-top: 9px;
     }
 
     .empty {
       background: white;
-      padding: 22px;
-      border-radius: 8px;
       text-align: center;
-      color: #666;
+      padding: 25px;
+      border-radius: 10px;
+      color: #718096;
     }
 
-    @media (max-width: 600px) {
-      body {
-        padding: 12px;
-      }
+    .pill {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 20px;
+      background: #e9f5ee;
+      color: #287a4b;
+      font-size: 12px;
+    }
 
-      header h1 {
-        font-size: 20px;
-      }
+    a { overflow-wrap: anywhere; }
 
-      button {
-        flex: 1;
-      }
+    @media(max-width: 600px) {
+      body { padding: 11px; }
+      header { padding: 19px; }
+      header h1 { font-size: 21px; }
+      .record-card { padding: 14px; }
+      button { flex: 1; }
     }
   </style>
 </head>
@@ -196,95 +219,369 @@
 <div class="container">
 
   <header>
-    <h1>管理者ダッシュボード</h1>
-    <p>現場つながる | 全現場のデータ管理</p>
+    <h1>現場つながる</h1>
+    <p>管理者ダッシュボード | Admin Dashboard</p>
+    <p>現場管理・従業員管理 | Site & Employee Management</p>
   </header>
 
   <div class="toolbar">
-    <button id="refreshButton">データ更新</button>
-    <button id="logoutButton" class="logout">ログアウト</button>
+    <button id="refreshButton">データ更新 | Refresh</button>
+    <button id="logoutButton" class="logout">ログアウト | Logout</button>
   </div>
 
-  <div id="status" class="status">
-    JavaScriptを起動しています...
-  </div>
+  <div id="status" class="status">起動中 | Starting...</div>
+
+  <h2 class="section-title">データ概要 | Data Summary</h2>
 
   <div class="summary">
     <div class="summary-card">
-      <h3>出勤・退勤</h3>
+      <h3>出勤・退勤 | Attendance</h3>
       <div class="count" id="attendanceCount">0</div>
     </div>
-
     <div class="summary-card">
-      <h3>作業報告</h3>
+      <h3>作業報告 | Work Reports</h3>
       <div class="count" id="reportCount">0</div>
     </div>
-
     <div class="summary-card">
-      <h3>備品申請</h3>
+      <h3>備品申請 | Equipment</h3>
       <div class="count" id="equipmentCount">0</div>
     </div>
-
     <div class="summary-card">
-      <h3>納品確認</h3>
+      <h3>納品確認 | Delivery</h3>
       <div class="count" id="deliveryCount">0</div>
     </div>
-
     <div class="summary-card">
-      <h3>位置情報</h3>
+      <h3>位置情報 | Location</h3>
       <div class="count" id="locationCount">0</div>
     </div>
   </div>
 
-  <h2 class="section-title">データ検索</h2>
+  <h2 class="section-title">データ検索 | Search Records</h2>
 
-  <div class="search-area">
-    <input
-      type="search"
-      id="searchInput"
-      placeholder="従業員名で検索"
-    >
+  <div class="filters">
+    <input id="searchInput" type="search"
+      placeholder="従業員名・内容で検索 | Search name or details">
 
     <select id="typeFilter">
-      <option value="all">すべてのデータ</option>
-      <option value="attendance_records">出勤・退勤</option>
-      <option value="work_reports">作業報告</option>
-      <option value="equipment_requests">備品申請</option>
-      <option value="delivery_records">納品確認</option>
-      <option value="location_records">位置情報</option>
+      <option value="all">すべて | All Types</option>
+      <option value="attendance_records">出勤・退勤 | Attendance</option>
+      <option value="work_reports">作業報告 | Work Reports</option>
+      <option value="equipment_requests">備品申請 | Equipment</option>
+      <option value="delivery_records">納品確認 | Delivery</option>
+      <option value="location_records">位置情報 | Location</option>
     </select>
+
+    <input id="dateFilter" type="date" aria-label="日付検索 Search by date">
   </div>
 
-  <h2 class="section-title">作業データ一覧</h2>
-
-  <div id="records">
-    読み込み中...
-  </div>
+  <h2 class="section-title">作業データ一覧 | Work Records</h2>
+  <div id="records">読み込み中 | Loading...</div>
 
 </div>
 
 <script>
 (() => {
-  const statusElement = document.getElementById("status");
-  const recordsElement = document.getElementById("records");
-
-  function showStatus(message) {
-    statusElement.textContent = message;
-  }
+  const statusEl = document.getElementById("status");
+  const recordsEl = document.getElementById("records");
 
   const tableNames = {
-    attendance_records: "出勤・退勤",
-    work_reports: "作業報告",
-    equipment_requests: "備品申請",
-    delivery_records: "納品確認",
-    location_records: "位置情報"
+    attendance_records: "出勤・退勤 | Attendance",
+    work_reports: "作業報告 | Work Report",
+    equipment_requests: "備品申請 | Equipment Request",
+    delivery_records: "納品確認 | Delivery Confirmation",
+    location_records: "位置情報 | Location"
+  };
+
+  const labels = {
+    date: "日付 | Date",
+    checkIn: "出勤時間 | Check-in",
+    checkOut: "退勤時間 | Check-out",
+    checkOutAddress: "退勤場所 | Check-out Address",
+    address: "住所 | Address",
+    location: "位置情報 | Location",
+    checkOutLocation: "退勤位置 | Check-out Location",
+    latitude: "緯度 | Latitude",
+    longitude: "経度 | Longitude",
+    accuracy: "GPS精度 | GPS Accuracy",
+    recordedAt: "記録日時 | Recorded At",
+    employeeName: "従業員名 | Employee Name",
+    event_type: "記録種類 | Event Type",
+    photo: "写真 | Photo",
+    name: "名称 | Name",
+    item: "備品名 | Item",
+    quantity: "数量 | Quantity",
+    amount: "数量 | Quantity",
+    description: "内容 | Description",
+    details: "詳細 | Details",
+    comment: "コメント | Comment",
+    remarks: "備考 | Remarks",
+    site: "現場名 | Site",
+    siteName: "現場名 | Site",
+    workDate: "作業日 | Work Date",
+    workContent: "作業内容 | Work Details",
+    status: "状態 | Status",
+    reason: "理由 | Reason",
+    category: "分類 | Category",
+    created_at: "登録日時 | Created At"
   };
 
   let allRecords = [];
 
+  function showStatus(message) {
+    statusEl.textContent = message;
+  }
+
+  function addText(parent, tag, className, value) {
+    const element = document.createElement(tag);
+    if (className) element.className = className;
+    element.textContent = value;
+    parent.appendChild(element);
+    return element;
+  }
+
+  function fieldLabel(key) {
+    return labels[key] || key.replace(/_/g, " ");
+  }
+
+  function addField(parent, key, value) {
+    if (value === null || value === undefined || value === "") return;
+
+    if (typeof value === "string" && value.startsWith("data:image/")) {
+      const wrap = document.createElement("div");
+      wrap.className = "field";
+      addText(wrap, "div", "field-label", fieldLabel(key));
+
+      const img = document.createElement("img");
+      img.className = "photo";
+      img.src = value;
+      img.alt = "Delivery photo";
+      img.loading = "lazy";
+      wrap.appendChild(img);
+
+      parent.appendChild(wrap);
+      return;
+    }
+
+    if (typeof value === "string" &&
+        value.length > 500 &&
+        value.startsWith("data:")) {
+      addText(parent, "div", "field",
+        fieldLabel(key) + ": Image or file data");
+      return;
+    }
+
+    if (typeof value === "object" && !Array.isArray(value)) {
+      const section = document.createElement("div");
+      section.className = "subsection";
+
+      addText(section, "div", "subsection-title", fieldLabel(key));
+
+      const grid = document.createElement("div");
+      grid.className = "field-grid";
+
+      Object.entries(value).forEach(([childKey, childValue]) => {
+        addField(grid, childKey, childValue);
+      });
+
+      section.appendChild(grid);
+
+      const lat = Number(value.latitude);
+      const lng = Number(value.longitude);
+
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        const link = document.createElement("a");
+        link.className = "map-link";
+        link.href = "https://www.google.com/maps?q=" +
+          encodeURIComponent(lat + "," + lng);
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.textContent = "Google Mapsで開く | Open Google Maps";
+        section.appendChild(link);
+      }
+
+      parent.appendChild(section);
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      const section = document.createElement("div");
+      section.className = "field";
+      addText(section, "div", "field-label", fieldLabel(key));
+
+      value.forEach((item, index) => {
+        addField(section, String(index + 1), item);
+      });
+
+      parent.appendChild(section);
+      return;
+    }
+
+    const wrap = document.createElement("div");
+    wrap.className = "field";
+
+    addText(wrap, "div", "field-label", fieldLabel(key));
+
+    let displayValue = String(value);
+
+    if (key === "event_type") {
+      if (value === "checkin") displayValue = "出勤 | Check-in";
+      if (value === "checkout") displayValue = "退勤 | Check-out";
+    }
+
+    addText(wrap, "div", "field-value", displayValue);
+    parent.appendChild(wrap);
+  }
+
+  function calculateWorkingHours(data) {
+    if (!data.checkIn || !data.checkOut) return "";
+
+    const start = data.checkIn.split(":").map(Number);
+    const end = data.checkOut.split(":").map(Number);
+
+    if (start.length < 2 || end.length < 2) return "";
+
+    const startMinutes = start[0] * 60 + start[1];
+    let endMinutes = end[0] * 60 + end[1];
+
+    if (start.length > 2) {
+      endMinutes += (end[2] - start[2]) / 60;
+    }
+
+    let duration = endMinutes - startMinutes;
+    if (duration < 0) duration += 24 * 60;
+
+    const hours = Math.floor(duration / 60);
+    const minutes = Math.round(duration % 60);
+
+    return hours + "時間 " + minutes + "分 | " +
+      hours + "h " + minutes + "m";
+  }
+
+  function renderRecords() {
+    const keyword = document.getElementById("searchInput")
+      .value.trim().toLowerCase();
+
+    const type = document.getElementById("typeFilter").value;
+    const date = document.getElementById("dateFilter").value;
+
+    const filtered = allRecords.filter(record => {
+      const data = record.record_data || {};
+
+      const searchable = JSON.stringify(data).toLowerCase() +
+        String(record.employee_name || "").toLowerCase();
+
+      const matchesKeyword = !keyword || searchable.includes(keyword);
+      const matchesType = type === "all" || record.table === type;
+
+      const recordDate = String(data.date || data.workDate ||
+        record.created_at || "").slice(0, 10).replace(/\//g, "-");
+
+      const matchesDate = !date || recordDate === date;
+
+      return matchesKeyword && matchesType && matchesDate;
+    });
+
+    recordsEl.replaceChildren();
+
+    if (filtered.length === 0) {
+      addText(recordsEl, "div", "empty",
+        "該当するデータはありません | No matching records");
+      return;
+    }
+
+    filtered.forEach(record => {
+      const data = record.record_data || {};
+      const card = document.createElement("article");
+      card.className = "record-card";
+
+      const head = document.createElement("div");
+      head.className = "record-head";
+
+      const identity = document.createElement("div");
+
+      const employeeName = record.employee_name ||
+        data.employeeName || "名前なし | No Name";
+
+      addText(identity, "div", "employee-name", employeeName);
+
+      const dateText = record.created_at
+        ? new Date(record.created_at).toLocaleString("ja-JP")
+        : (data.date || "日時不明 | Date unavailable");
+
+      addText(identity, "div", "record-date", dateText);
+
+      addText(head, "div", "category",
+        tableNames[record.table] || record.table);
+
+      head.insertBefore(identity, head.firstChild);
+      card.appendChild(head);
+
+      const grid = document.createElement("div");
+      grid.className = "field-grid";
+
+      const excluded = ["employeeName", "photo"];
+      Object.entries(data).forEach(([key, value]) => {
+        if (!excluded.includes(key)) {
+          addField(grid, key, value);
+        }
+      });
+
+      card.appendChild(grid);
+
+      if (record.table === "attendance_records") {
+        const hours = calculateWorkingHours(data);
+
+        if (hours) {
+          const hoursBox = document.createElement("div");
+          hoursBox.className = "subsection";
+          addText(hoursBox, "div", "subsection-title",
+            "勤務時間 | Working Hours");
+          addText(hoursBox, "div", "pill", hours);
+          card.appendChild(hoursBox);
+        }
+      }
+
+      if (data.photo && typeof data.photo === "string" &&
+          data.photo.startsWith("data:image/")) {
+        const photoSection = document.createElement("div");
+        photoSection.className = "subsection";
+        addText(photoSection, "div", "subsection-title",
+          "納品写真 | Delivery Photo");
+
+        const img = document.createElement("img");
+        img.className = "photo";
+        img.src = data.photo;
+        img.alt = "Delivery confirmation";
+        img.loading = "lazy";
+
+        photoSection.appendChild(img);
+        card.appendChild(photoSection);
+      }
+
+      recordsEl.appendChild(card);
+    });
+  }
+
+  function updateCounts(data) {
+    document.getElementById("attendanceCount").textContent =
+      (data.attendance_records || []).length;
+
+    document.getElementById("reportCount").textContent =
+      (data.work_reports || []).length;
+
+    document.getElementById("equipmentCount").textContent =
+      (data.equipment_requests || []).length;
+
+    document.getElementById("deliveryCount").textContent =
+      (data.delivery_records || []).length;
+
+    document.getElementById("locationCount").textContent =
+      (data.location_records || []).length;
+  }
+
   async function startApp() {
     try {
-      showStatus("JavaScriptを起動しました。");
+      showStatus("ログインを確認しています | Checking login...");
 
       const config = window.GENBA_CONFIG;
 
@@ -293,7 +590,7 @@
       }
 
       if (!window.supabase) {
-        throw new Error("Supabaseライブラリを読み込めませんでした。");
+        throw new Error("Supabase library could not be loaded.");
       }
 
       const supabase = window.supabase.createClient(
@@ -313,132 +610,21 @@
         "/genba-admin-api"
       );
 
-      async function getSession() {
-        showStatus("ログインを確認しています...");
-
-        const result = await Promise.race([
-          supabase.auth.getSession(),
-          new Promise((_, reject) =>
-            setTimeout(
-              () => reject(new Error("ログイン確認がタイムアウトしました。")),
-              15000
-            )
-          )
-        ]);
-
-        if (result.error) {
-          throw result.error;
-        }
-
-        if (!result.data.session) {
-          window.location.replace("admin-login.html");
-          return null;
-        }
-
-        return result.data.session;
-      }
-
-      function updateCounts(data) {
-        document.getElementById("attendanceCount").textContent =
-          data.attendance_records.length;
-
-        document.getElementById("reportCount").textContent =
-          data.work_reports.length;
-
-        document.getElementById("equipmentCount").textContent =
-          data.equipment_requests.length;
-
-        document.getElementById("deliveryCount").textContent =
-          data.delivery_records.length;
-
-        document.getElementById("locationCount").textContent =
-          data.location_records.length;
-      }
-
-      function renderRecords() {
-        const keyword = document.getElementById("searchInput")
-          .value.trim().toLowerCase();
-
-        const selectedType = document.getElementById("typeFilter").value;
-
-        const filtered = allRecords.filter(record => {
-          const name = String(record.employee_name || "").toLowerCase();
-
-          const details = JSON.stringify(
-            record.record_data || {}
-          ).toLowerCase();
-
-          const matchesKeyword =
-            !keyword ||
-            name.includes(keyword) ||
-            details.includes(keyword);
-
-          const matchesType =
-            selectedType === "all" ||
-            record.table === selectedType;
-
-          return matchesKeyword && matchesType;
-        });
-
-        recordsElement.replaceChildren();
-
-        if (filtered.length === 0) {
-          const empty = document.createElement("div");
-          empty.className = "empty";
-          empty.textContent = "該当するデータはありません。";
-          recordsElement.appendChild(empty);
-          return;
-        }
-
-        filtered.forEach(record => {
-          const card = document.createElement("div");
-          card.className = "record-card";
-
-          const head = document.createElement("div");
-          head.className = "record-head";
-
-          const name = document.createElement("div");
-          name.className = "record-name";
-          name.textContent = record.employee_name || "名前なし";
-
-          const category = document.createElement("div");
-          category.className = "record-category";
-          category.textContent = tableNames[record.table] || record.table;
-
-          const date = document.createElement("div");
-          date.className = "record-date";
-
-          const parsedDate = record.created_at
-            ? new Date(record.created_at)
-            : null;
-
-          date.textContent =
-            parsedDate && !isNaN(parsedDate.getTime())
-              ? parsedDate.toLocaleString("ja-JP")
-              : "日時不明";
-
-          head.append(name, category, date);
-
-          const details = document.createElement("pre");
-          details.textContent = JSON.stringify(
-            record.record_data || {},
-            null,
-            2
-          );
-
-          card.append(head, details);
-          recordsElement.appendChild(card);
-        });
-      }
-
       async function loadRecords() {
         try {
-          showStatus("データを読み込んでいます...");
-          recordsElement.textContent = "読み込み中...";
+          showStatus("データを読み込んでいます | Loading records...");
+          recordsEl.textContent = "読み込み中 | Loading...";
 
-          const session = await getSession();
+          const sessionResult = await supabase.auth.getSession();
 
-          if (!session) return;
+          if (sessionResult.error) throw sessionResult.error;
+
+          const session = sessionResult.data.session;
+
+          if (!session) {
+            window.location.replace("admin-login.html");
+            return;
+          }
 
           const response = await fetch(adminApiUrl, {
             method: "POST",
@@ -456,25 +642,19 @@
           const result = await response.json();
 
           if (!response.ok) {
-            throw new Error(
-              result.details || result.error || "データ取得に失敗しました。"
-            );
+            throw new Error(result.details || result.error ||
+              "Could not load records.");
           }
 
           if (!result.success || !result.data) {
-            throw new Error("データ形式を確認できませんでした。");
+            throw new Error("Invalid data response.");
           }
 
           allRecords = [];
 
           Object.keys(tableNames).forEach(table => {
-            const rows = result.data[table] || [];
-
-            rows.forEach(row => {
-              allRecords.push({
-                ...row,
-                table
-              });
+            (result.data[table] || []).forEach(row => {
+              allRecords.push({ ...row, table });
             });
           });
 
@@ -487,16 +667,14 @@
           renderRecords();
 
           showStatus(
-            "データの読み込みが完了しました。合計 " +
-            allRecords.length +
-            " 件"
+            "読み込み完了 | Loaded successfully: " +
+            allRecords.length + " records"
           );
 
         } catch (error) {
-          console.error("Load error:", error);
-          showStatus("エラー: " + error.message);
-          recordsElement.textContent =
-            "データを読み込めませんでした。上のエラーを確認してください。";
+          console.error(error);
+          showStatus("エラー | Error: " + error.message);
+          recordsEl.textContent = "データを読み込めませんでした | Could not load records.";
         }
       }
 
@@ -504,6 +682,9 @@
         .addEventListener("input", renderRecords);
 
       document.getElementById("typeFilter")
+        .addEventListener("change", renderRecords);
+
+      document.getElementById("dateFilter")
         .addEventListener("change", renderRecords);
 
       document.getElementById("refreshButton")
@@ -518,9 +699,9 @@
       await loadRecords();
 
     } catch (error) {
-      console.error("App error:", error);
-      showStatus("エラー: " + error.message);
-      recordsElement.textContent = "画面を起動できませんでした。";
+      console.error(error);
+      showStatus("エラー | Error: " + error.message);
+      recordsEl.textContent = "画面を起動できませんでした | Could not start dashboard.";
     }
   }
 
