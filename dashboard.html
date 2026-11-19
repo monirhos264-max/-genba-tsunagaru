@@ -1,76 +1,60 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>現場つながる</title>
-
-<meta name="theme-color" content="#173b65">
-<meta name="description" content="現場管理システム">
-
-<link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/svg+xml" href="icon.svg">
-<link rel="apple-touch-icon" href="icon.svg">
-
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>現場つながる</title><meta name="theme-color" content="#173b65"><meta name="description" content="現場管理システム">
+<link rel="manifest" href="manifest.json"><link rel="icon" type="image/svg+xml" href="icon.svg"><link rel="apple-touch-icon" href="icon.svg">
 <link rel="stylesheet" href="dashboard.css">
-</head>
-
+<style>
+.notice-setup{background:#fff;border:1px solid #dbe5ef;border-radius:14px;padding:18px;margin:18px 0;box-shadow:0 3px 12px #173b6510}
+.notice-setup h3{margin:0 0 8px;color:#173b65}.notice-setup p{line-height:1.6;color:#526579;font-size:14px}
+.notice-setup input{width:100%;padding:13px;border:1px solid #cbd5e1;border-radius:8px;font-size:16px;margin:7px 0}
+.notice-setup button{width:100%;padding:14px;border:0;border-radius:9px;background:#1769aa;color:#fff;font-weight:bold;font-size:16px}
+#pushMessage{font-size:13px;line-height:1.5;margin-top:10px}
+</style></head>
 <body>
-
-<header>
-  <h1>現場つながる</h1>
-  <p>現場管理システム</p>
-</header>
-
+<header><h1>現場つながる</h1><p>現場管理システム</p></header>
 <main class="container">
-
-  <section class="welcome">
-    <h2>ダッシュボード</h2>
-    <p>本日の業務管理</p>
-  </section>
-
-  <section class="menu">
-
-    <a href="attendance.html" class="card">
-      📋<br>出勤・退勤
-    </a>
-
-    <a href="location.html" class="card">
-      📍<br>位置情報
-    </a>
-
-    <a href="report.html" class="card">
-      🧹<br>作業報告
-    </a>
-
-    <a href="equipment.html" class="card">
-      🛠️<br>備品申請
-    </a>
-
-    <a href="delivery.html" class="card">
-      📦<br>納品確認
-    </a>
-
-    <a href="history.html" class="card">
-      📚<br>作業履歴
-    </a>
-
-  </section>
-
-</main>
-
+<section class="welcome"><h2>ダッシュボード</h2><p>本日の業務管理</p></section>
+<section class="notice-setup">
+<h3>🔔 お知らせ通知の設定</h3>
+<p>備品申請の完了など、会社からのお知らせを受け取ります。スマートフォンでは通知を許可してください。</p>
+<label for="pushEmployeeName">社員名 / Employee name</label>
+<input id="pushEmployeeName" type="text" maxlength="100" autocomplete="name" placeholder="社員名を入力してください">
+<button id="enablePushButton" type="button">通知を受け取る / 通知を有効にする</button>
+<div id="pushMessage" role="status"></div>
+</section>
+<section class="menu">
+<a href="attendance.html" class="card">📋<br>出勤・退勤</a><a href="location.html" class="card">📍<br>位置情報</a>
+<a href="report.html" class="card">🧹<br>作業報告</a><a href="equipment.html" class="card">🛠️<br>備品申請</a>
+<a href="delivery.html" class="card">📦<br>納品確認</a><a href="history.html" class="card">📚<br>作業履歴</a>
+</section></main>
+<script src="app-config.js"></script>
 <script>
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js")
-      .catch(error => {
-        console.error("Service Worker registration failed:", error);
-      });
-  });
-}
-</script>
-
-</body>
-</html>
+const pushButton=document.getElementById("enablePushButton"),pushMessage=document.getElementById("pushMessage");
+function showPushMessage(t,ok=false){pushMessage.textContent=t;pushMessage.style.color=ok?"#15803d":"#b91c1c";}
+function base64ToBytes(value){const padding="=".repeat((4-value.length%4)%4);const raw=atob((value+padding).replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from(raw,c=>c.charCodeAt(0));}
+pushButton.addEventListener("click",async()=>{
+ const employeeName=document.getElementById("pushEmployeeName").value.trim();
+ if(!employeeName){showPushMessage("社員名を入力してください。");return;}
+ if(!("serviceWorker" in navigator)||!("PushManager" in window)||!("Notification" in window)){showPushMessage("このブラウザはPush通知に対応していません。ページを開いて確認してください。");return;}
+ if(!window.GENBA_CONFIG?.pushPublicKey){showPushMessage("通知設定がまだ完了していません。管理者に連絡してください。");return;}
+ pushButton.disabled=true;pushButton.textContent="設定中...";
+ try{
+  const permission=await Notification.requestPermission();
+  if(permission!=="granted")throw new Error("通知が許可されていません。ブラウザまたは端末の設定を確認してください。");
+  const registration=await navigator.serviceWorker.register("./service-worker.js");
+  await navigator.serviceWorker.ready;
+  let subscription=await registration.pushManager.getSubscription();
+  if(!subscription)subscription=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:base64ToBytes(window.GENBA_CONFIG.pushPublicKey)});
+  const response=await fetch(window.GENBA_CONFIG.functionUrl,{method:"POST",headers:{"Content-Type":"application/json","apikey":window.GENBA_CONFIG.publishableKey},body:JSON.stringify({action:"subscribe_push",employee_name:employeeName,subscription:subscription.toJSON()})});
+  const result=await response.json();
+  if(!response.ok||!result.success)throw new Error(result.error||"通知登録に失敗しました。");
+  localStorage.setItem("genba_push_employee_name",employeeName);
+  showPushMessage("通知を受け取る設定が完了しました。次回の完了連絡から届きます。",true);
+ }catch(error){showPushMessage(error.message||"通知設定に失敗しました。");}
+ finally{pushButton.disabled=false;pushButton.textContent="通知を受け取る / 通知を有効にする";}
+});
+const savedName=localStorage.getItem("genba_push_employee_name");if(savedName)document.getElementById("pushEmployeeName").value=savedName;
+if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js").catch(console.error));
+</script></body></html>
