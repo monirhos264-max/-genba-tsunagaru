@@ -69,6 +69,12 @@ input,select{min-width:0;width:100%;padding:11px 12px;border:1px solid #d5e1df;b
     <button id="refreshButton">↻　データ更新</button>
     <button id="logoutButton" class="logout">ログアウト</button>
   </div>
+  <section class="panel" id="adminPushPanel">
+    <div class="panel-heading"><h2>🔔 出勤通知の設定</h2></div>
+    <p class="result-line">管理者の端末で通知を有効にすると、スタッフが出勤した際に通知を受け取れます。通知許可が必要です。</p>
+    <button id="enableAdminPushButton" type="button">管理者通知を有効にする</button>
+    <p id="adminPushMessage" class="result-line" role="status" aria-live="polite"></p>
+  </section>
   <div id="status" class="status">起動中 | Starting...</div>
   <section id="diagnostic" class="diagnostic" hidden><h3>エラー詳細 | Error details</h3><p>問題が発生した場合、ここに原因とサーバーからの応答を表示します。</p><pre id="diagnosticDetails"></pre></section>
   <section id="overview" class="panel">
@@ -545,6 +551,77 @@ input,select{min-width:0;width:100%;padding:11px 12px;border:1px solid #d5e1df;b
       (data.location_records || []).length;
   }
 
+  function base64ToBytes(value) {
+    const padding = "=".repeat((4 - value.length % 4) % 4);
+    const raw = atob((value + padding).replace(/-/g, "+").replace(/_/g, "/"));
+    return Uint8Array.from(raw, c => c.charCodeAt(0));
+  }
+
+  function setupAdminPushRegistration() {
+    const button = document.getElementById("enableAdminPushButton");
+    const message = document.getElementById("adminPushMessage");
+    if (!button || button.dataset.bound === "true") return;
+    button.dataset.bound = "true";
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+      message.textContent = "通知を設定しています...";
+      try {
+        if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+          throw new Error("このブラウザはWebプッシュ通知に対応していません。");
+        }
+        const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+        const isStandalone = window.navigator.standalone === true || window.matchMedia("(display-mode: standalone)").matches;
+        if (isIOS && !isStandalone) {
+          throw new Error("iPhoneでは管理者画面をホーム画面に追加し、そのアイコンから開いてください。");
+        }
+        if (!window.GENBA_CONFIG?.pushPublicKey) throw new Error("通知設定を確認してください。");
+        if (Notification.permission === "denied") throw new Error("端末設定でこのアプリの通知を許可してください。");
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") throw new Error("通知が許可されませんでした。");
+        const registration = await navigator.serviceWorker.register("./service-worker.js");
+        const ready = await Promise.race([
+          navigator.serviceWorker.ready,
+          new Promise((_, reject) => setTimeout(() => reject(new Error("通知サービスの起動がタイムアウトしました。再読み込みしてください。")), 12000))
+        ]);
+        let subscription = await ready.pushManager.getSubscription();
+        if (!subscription) {
+          subscription = await ready.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: base64ToBytes(window.GENBA_CONFIG.pushPublicKey)
+          });
+        }
+        const sessionResult = await supabaseClient.auth.getSession();
+        if (sessionResult.error) throw sessionResult.error;
+        const session = sessionResult.data.session;
+        if (!session) throw new Error("ログインし直してください。");
+        const response = await fetch(adminApiUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": window.GENBA_CONFIG.publishableKey,
+            "Authorization": "Bearer " + session.access_token
+          },
+          body: JSON.stringify({
+            action: "subscribe_admin_push",
+            subscription: subscription.toJSON()
+          })
+        });
+        const responseText = await response.text();
+        let result = {};
+        try { result = responseText ? JSON.parse(responseText) : {}; }
+        catch (_) { throw new Error("サーバー応答を読み取れません: " + responseText.slice(0, 300)); }
+        if (!response.ok || !result.success) throw new Error(result.error || ("通知登録に失敗しました (HTTP " + response.status + ")"));
+        message.textContent = "管理者通知の登録が完了しました。この端末で出勤通知を受け取れます。";
+        message.style.color = "#15803d";
+      } catch (error) {
+        message.textContent = error.message || "通知設定に失敗しました。";
+        message.style.color = "#b91c1c";
+      } finally {
+        button.disabled = false;
+      }
+    });
+  }
+
   async function startApp() {
     try {
       showStatus("ログインを確認しています | Checking login...");
@@ -575,6 +652,8 @@ input,select{min-width:0;width:100%;padding:11px 12px;border:1px solid #d5e1df;b
         "/genba-api",
         "/genba-admin-api"
       );
+
+      setupAdminPushRegistration();
 
       async function loadRecords() {
         try {
