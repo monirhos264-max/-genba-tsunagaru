@@ -454,8 +454,23 @@ input,select{min-width:0;width:100%;padding:11px 12px;border:1px solid #d5e1df;b
               status: statusSelect.value,
               statusUpdatedAt: new Date().toISOString()
             };
-            statusMessage.textContent = "保存しました";
-            statusMessage.style.color = "#15803d";
+            const notice = result.notification || {};
+            if (notice.attempted && notice.sent > 0) {
+              statusMessage.textContent = "保存済み・通知送信成功: " + notice.sent + " / 登録端末 " + (notice.subscribers || notice.sent);
+              statusMessage.style.color = "#15803d";
+            } else if (notice.attempted && notice.noSubscriptions) {
+              statusMessage.textContent = "状態は保存済みですが、通知登録済み端末がありません。Staff側で通知設定が必要です。";
+              statusMessage.style.color = "#b45309";
+            } else if (notice.attempted && notice.configurationRequired) {
+              statusMessage.textContent = "状態は保存済みですが、VAPIDキー設定を確認してください。";
+              statusMessage.style.color = "#b91c1c";
+            } else if (notice.attempted && notice.failed > 0) {
+              statusMessage.textContent = "状態は保存済み。通知失敗 " + notice.failed + " 件: " + (notice.errors || []).join(" / ");
+              statusMessage.style.color = "#b91c1c";
+            } else {
+              statusMessage.textContent = "保存しました。今回は通知送信の対象外です。";
+              statusMessage.style.color = "#15803d";
+            }
             renderRecords();
           } catch (error) {
             statusMessage.textContent = "失敗: " + error.message;
