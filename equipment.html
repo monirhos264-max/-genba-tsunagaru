@@ -125,6 +125,17 @@ button:disabled {
   <div class="card">
     <h3>🛠️ 備品・消耗品の申請</h3>
 
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:14px;margin:14px 0;">
+      <strong>🔔 申請完了通知を受け取る</strong>
+      <p style="font-size:14px;line-height:1.6;margin:8px 0;color:#334155;">
+        社員名を入力してから下のボタンを押してください。管理者が備品申請を「完了」にすると、この端末に通知が届きます。
+      </p>
+      <button type="button" id="enablePushBtn" style="margin-top:4px;background:#1769aa;">
+        この端末で通知を受け取る
+      </button>
+      <p id="pushMessage" role="status" style="font-size:13px;line-height:1.5;margin:9px 0 0;"></p>
+    </div>
+
     <form id="equipmentForm">
 
       <label for="employeeName">社員名</label>
@@ -181,6 +192,89 @@ let applications = JSON.parse(
 
 const form = document.getElementById("equipmentForm");
 const submitBtn = document.getElementById("submitBtn");
+const enablePushBtn = document.getElementById("enablePushBtn");
+const pushMessage = document.getElementById("pushMessage");
+
+function showPushMessage(message, color = "#1769aa") {
+  pushMessage.textContent = message;
+  pushMessage.style.color = color;
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(base64);
+  return Uint8Array.from([...raw].map(char => char.charCodeAt(0)));
+}
+
+async function enablePushNotifications() {
+  const employeeName = document.getElementById("employeeName").value.trim();
+  if (!employeeName) {
+    showPushMessage("先に社員名を入力してください。", "#dc2626");
+    document.getElementById("employeeName").focus();
+    return;
+  }
+
+  if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+    showPushMessage("このブラウザはPush通知に対応していません。iPhoneではホーム画面に追加したアプリから開いてください。", "#dc2626");
+    return;
+  }
+
+  const publicKey = window.GENBA_CONFIG && window.GENBA_CONFIG.pushPublicKey;
+  if (!publicKey) {
+    showPushMessage("通知設定が見つかりません。管理者に連絡してください。", "#dc2626");
+    return;
+  }
+
+  enablePushBtn.disabled = true;
+  enablePushBtn.textContent = "通知を設定しています...";
+
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") {
+      throw new Error("通知が許可されませんでした。ブラウザまたは端末の設定で通知を許可してください。");
+    }
+
+    const registration = await navigator.serviceWorker.register("./service-worker.js");
+    await navigator.serviceWorker.ready;
+
+    let subscription = await registration.pushManager.getSubscription();
+    if (!subscription) {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey)
+      });
+    }
+
+    const response = await fetch(window.GENBA_CONFIG.functionUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": window.GENBA_CONFIG.publishableKey
+      },
+      body: JSON.stringify({
+        action: "subscribe_push",
+        employee_name: employeeName,
+        subscription: subscription.toJSON()
+      })
+    });
+
+    const result = await response.json();
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || "通知登録を保存できませんでした。");
+    }
+
+    showPushMessage("通知を設定しました。この端末で「完了」の通知を受け取れます。");
+    enablePushBtn.textContent = "通知設定済み";
+  } catch (error) {
+    showPushMessage(error.message || "通知設定に失敗しました。", "#dc2626");
+    enablePushBtn.disabled = false;
+    enablePushBtn.textContent = "この端末で通知を受け取る";
+  }
+}
+
+enablePushBtn.addEventListener("click", enablePushNotifications);
+
 
 document.getElementById("requestDate").value =
   new Date().toLocaleDateString("en-CA");
