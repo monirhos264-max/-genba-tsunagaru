@@ -267,6 +267,37 @@ async function sendToDatabase(application) {
   return result;
 }
 
+async function refreshApplicationStatus(application) {
+  try {
+    const response = await fetch(window.GENBA_CONFIG.functionUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": window.GENBA_CONFIG.publishableKey
+      },
+      body: JSON.stringify({
+        action: "lookup_equipment_status",
+        id: application.recordId || null,
+        employee_name: application.employeeName,
+        siteName: application.siteName,
+        equipmentName: application.equipmentName,
+        requestDate: application.requestDate,
+        savedAt: application.savedAt
+      })
+    });
+
+    const result = await response.json();
+    if (response.ok && result.success && result.status) {
+      application.status = result.status;
+      if (result.id) application.recordId = result.id;
+      saveApplications();
+      renderApplications();
+    }
+  } catch (error) {
+    console.warn("Status refresh failed:", error);
+  }
+}
+
 form.addEventListener("submit", async function(event) {
   event.preventDefault();
 
@@ -319,7 +350,9 @@ form.addEventListener("submit", async function(event) {
   showMessage("Databaseに送信しています...", "#64748b");
 
   try {
-    await sendToDatabase(application);
+    const savedResult = await sendToDatabase(application);
+    const savedRow = Array.isArray(savedResult.data) ? savedResult.data[0] : savedResult.data;
+    if (savedRow && savedRow.id) application.recordId = savedRow.id;
 
     applications.unshift(application);
     saveApplications();
@@ -344,6 +377,7 @@ form.addEventListener("submit", async function(event) {
 });
 
 renderApplications();
+applications.forEach(refreshApplicationStatus);
 </script>
 
 </body>
