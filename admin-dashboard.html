@@ -11,188 +11,41 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
-    * { box-sizing: border-box; }
 
-    body { margin:0; padding:22px; background:#f4f7fb; color:#172b4d; font-family:Arial,"Noto Sans JP",sans-serif; }
-    .container { max-width:1440px; margin:auto; }
-    .dashboard-layout { display:grid; grid-template-columns:220px minmax(0,1fr); gap:22px; align-items:start; }
-    .sidebar { position:sticky; top:18px; background:#102b4e; color:#fff; border-radius:18px; padding:20px 14px; min-height:calc(100vh - 44px); }
-    .brand { padding:4px 10px 20px; border-bottom:1px solid #ffffff24; margin-bottom:16px; }
-    .brand strong { display:block; font-size:19px; letter-spacing:.3px; }
-    .brand small { display:block; color:#b9cce2; margin-top:6px; }
-    .side-label { color:#8fa9c6; font-size:11px; letter-spacing:1px; padding:10px 10px 7px; }
-    .side-link { display:block; color:#e4edf7; text-decoration:none; padding:11px 12px; border-radius:10px; margin:3px 0; font-size:14px; }
-    .side-link.active,.side-link:hover { background:#244b76; color:#fff; }
-    .main-content { min-width:0; }
-    header { background:linear-gradient(120deg,#12345a,#176ca6); color:white; padding:25px 28px; border-radius:18px; margin-bottom:20px; box-shadow:0 10px 30px #173b6518; }
-    header h1 { margin:0 0 7px; font-size:25px; }
-    header p { margin:4px 0; color:#d9e8f7; }
+*{box-sizing:border-box}
+:root{--ink:#172b36;--muted:#647783;--line:#e1e9e8;--paper:#f2f7f5;--white:#fff;--teal:#087e78;--teal2:#0da69a;--navy:#123b43;--orange:#f0a34a;--red:#b42318}
+body{margin:0;padding:22px;background:var(--paper);color:var(--ink);font-family:Arial,"Noto Sans JP",sans-serif}
+.container{max-width:1480px;margin:auto}
+.dashboard-layout{display:grid;grid-template-columns:245px minmax(0,1fr);gap:22px;align-items:start}
+.sidebar{position:sticky;top:18px;background:linear-gradient(160deg,#123b43,#0b615d);color:#fff;border-radius:22px;padding:22px 16px;min-height:calc(100vh - 44px);box-shadow:0 16px 40px #123b431c}
+.brand{padding:5px 10px 22px;border-bottom:1px solid #ffffff25;margin-bottom:18px}.brand strong{display:block;font-size:21px}.brand small{display:block;color:#b9d8d4;margin-top:7px;font-size:11px;letter-spacing:.5px}
+.side-label{color:#91bdb7;font-size:10px;letter-spacing:1.5px;padding:10px}.side-link{display:block;color:#e7f5f2;text-decoration:none;padding:13px 12px;border-radius:12px;margin:5px 0;font-size:14px}.side-link.active,.side-link:hover{background:#ffffff20;color:white}
+.main-content{min-width:0}
+header{background:linear-gradient(115deg,#0c5552,#0d9b8d);color:#fff;padding:30px 32px;border-radius:22px;margin-bottom:20px;box-shadow:0 14px 34px #087e7820}
+header h1{margin:0 0 8px;font-size:27px}header p{margin:5px 0;color:#d8f2ed}
+.toolbar,.filters{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+button{padding:11px 17px;border:0;border-radius:11px;background:var(--teal);color:#fff;font-weight:700;cursor:pointer;transition:.15s}button:hover{filter:brightness(1.08);transform:translateY(-1px)}button:disabled{opacity:.6;cursor:wait;transform:none}button.logout{background:#a33b36}
+.panel,.status,.diagnostic{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px;margin-bottom:18px;box-shadow:0 5px 22px #173c3a08}
+.panel-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap}.panel-heading h2{margin:0;font-size:18px}.result-line{color:var(--muted);font-size:13px}
+.status{border-left:5px solid var(--teal);font-size:13px;color:#36535a;overflow-wrap:anywhere}
+.diagnostic{background:#fff9f2;border-color:#f2ddc5}.diagnostic h3{margin:0 0 8px;font-size:14px;color:#8b4b19}.diagnostic p{margin:0 0 9px;font-size:12px;color:#765b45}.diagnostic pre{white-space:pre-wrap;overflow-wrap:anywhere;margin:0;padding:12px;background:#fff;border:1px solid #f0dfcf;border-radius:10px;color:#713b20;font:12px/1.55 ui-monospace,monospace;max-height:220px;overflow:auto}
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px;margin-bottom:5px}.summary-card{background:#fff;padding:18px;border:1px solid var(--line);border-radius:16px;box-shadow:0 5px 20px #173c3a08}.summary-card h3{margin:0 0 10px;font-size:12px;color:var(--muted)}.count{font-size:31px;font-weight:800;color:var(--teal)}
+h2.section-title{font-size:19px;margin:24px 0 13px}
+input,select{min-width:0;width:100%;padding:11px 12px;border:1px solid #d5e1df;border-radius:10px;background:#fff;font-size:14px;color:var(--ink)}
+.filter-grid{display:grid;grid-template-columns:repeat(3,minmax(130px,1fr));gap:12px}.filter-item{display:flex;flex-direction:column;gap:7px;min-width:0}.filter-item label{color:#536c70;font-size:12px;font-weight:700}
+.quick-filters{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.quick-filters button{background:#e4f3f0;color:#17645f;padding:9px 13px;font-size:12px}.quick-filters button:hover{background:#cce9e3}
+.record-card{background:#fff;border:1px solid var(--line);border-radius:17px;padding:19px;margin-bottom:13px;box-shadow:0 5px 20px #173c3a08;overflow-wrap:anywhere}
+.record-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;padding-bottom:13px;border-bottom:1px solid #edf2f0;margin-bottom:14px}
+.employee-name{font-size:18px;font-weight:800}.record-date{color:var(--muted);font-size:12px;margin-top:5px}.category{background:#e3f3ef;color:#08766f;padding:7px 11px;border-radius:20px;font-size:12px;font-weight:700}
+.field-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}.field{background:#f5f8f7;padding:12px;border-radius:10px;min-width:0}.field-label{color:#71848a;font-size:11px;margin-bottom:7px}.field-value{font-size:14px;font-weight:600;white-space:pre-wrap;overflow-wrap:anywhere}
+.subsection{margin-top:15px;padding-top:13px;border-top:1px solid #e8efed}.subsection-title{font-size:13px;font-weight:800;margin-bottom:10px;color:#28645f}.map-link{display:inline-block;margin-top:9px;color:#087e78;font-weight:700;text-decoration:none}
+.photo{display:block;width:100%;max-width:420px;max-height:350px;object-fit:contain;border-radius:10px;background:#f1f5f4;margin-top:9px}
+.empty{background:#f7faf9;text-align:center;padding:28px;border:1px dashed #cbd9d5;border-radius:12px;color:#71848a}.pill{display:inline-block;padding:6px 10px;border-radius:20px;background:#e4f4e9;color:#287a4b;font-size:12px}a{overflow-wrap:anywhere}
+@media(max-width:900px){body{padding:12px}.dashboard-layout{grid-template-columns:1fr}.sidebar{position:static;min-height:0;padding:14px}.brand{padding:4px 8px 12px;margin-bottom:8px}.side-nav{display:flex;flex-wrap:wrap;gap:4px}.side-label{display:none}.side-link{padding:9px 10px}}
+@media(max-width:650px){header{padding:21px;border-radius:17px}header h1{font-size:22px}.panel{padding:15px}.record-card{padding:14px}.filter-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.summary{grid-template-columns:repeat(2,minmax(0,1fr))}.toolbar button{flex:1}}
+@media(max-width:390px){.filter-grid{grid-template-columns:1fr}}
 
-    header {
-      background: linear-gradient(120deg, #173b65, #246b9c);
-      color: white;
-      padding: 25px;
-      border-radius: 14px;
-      margin-bottom: 20px;
-    }
-
-    header h1 { margin: 0 0 7px; font-size: 25px; }
-    header p { margin: 4px 0; color: #e1eaf4; }
-
-    .toolbar, .filters { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px; }
-    .panel { background:#fff; border:1px solid #e8eef5; border-radius:16px; padding:18px; margin-bottom:18px; box-shadow:0 4px 18px #16324f08; }
-    .panel-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
-    .panel-heading h2 { margin:0; font-size:17px; }
-    .filter-grid { display:grid; grid-template-columns:repeat(4,minmax(130px,1fr)); gap:10px; }
-    .filter-item { display:flex; flex-direction:column; gap:6px; min-width:0; }
-    .filter-item label { color:#667991; font-size:12px; font-weight:700; }
-    .filter-item input,.filter-item select { width:100%; min-width:0; }
-    .quick-filters { display:flex; flex-wrap:wrap; gap:7px; margin-top:12px; }
-    .quick-filters button { background:#edf4fb; color:#28577f; padding:8px 12px; font-size:12px; }
-    .quick-filters button:hover { background:#dceaf7; }
-    .result-line { color:#718096; font-size:13px; }
-
-    button { padding:12px 18px; border:0; border-radius:9px; background:#1769aa; color:#fff; font-weight:700; cursor:pointer; transition:.15s ease; }
-    button:hover { filter:brightness(1.06); transform:translateY(-1px); }
-    button:disabled { opacity:.6; cursor:wait; transform:none; }
-
-    button.logout { background: #b83232; }
-
-    .status { background:#fff; border:1px solid #e8eef5; border-radius:11px; padding:12px 15px; margin-bottom:18px; overflow-wrap:anywhere; font-size:13px; color:#53677f; }
-
-    .summary {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
-      gap: 12px;
-      margin-bottom: 25px;
-    }
-
-    .summary-card {
-      background:white; padding:18px; border:1px solid #e8eef5; border-radius:14px; box-shadow:0 4px 18px #16324f08;
-    }
-
-    .summary-card h3 {
-      margin: 0 0 9px;
-      font-size: 13px;
-      color: #68778b;
-    }
-
-    .count { font-size: 29px; font-weight: bold; color: #1769aa; }
-
-    h2.section-title { font-size:19px; margin:24px 0 13px; }
-
-    input, select {
-      min-width:160px; flex:1; padding:11px 12px; border:1px solid #d5dfeb; border-radius:9px; background:#fff; font-size:14px; color:#243b53;
-    }
-
-    .record-card {
-      background:white; border:1px solid #e7edf4; border-radius:15px; padding:18px; margin-bottom:13px; box-shadow:0 4px 18px #16324f08; overflow-wrap:anywhere;
-    }
-
-    .record-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 10px;
-      flex-wrap: wrap;
-      padding-bottom: 13px;
-      border-bottom: 1px solid #edf0f4;
-      margin-bottom: 14px;
-    }
-
-    .employee-name { font-size: 19px; font-weight: bold; }
-    .record-date { color: #738196; font-size: 13px; margin-top: 5px; }
-
-    .category {
-      background: #eaf3fc;
-      color: #1769aa;
-      padding: 7px 11px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: bold;
-    }
-
-    .field-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-      gap: 10px;
-    }
-
-    .field {
-      background: #f7f9fc;
-      padding: 12px;
-      border-radius: 8px;
-      min-width: 0;
-    }
-
-    .field-label {
-      color: #748196;
-      font-size: 12px;
-      margin-bottom: 7px;
-    }
-
-    .field-value {
-      font-size: 14px;
-      font-weight: 600;
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-    }
-
-    .subsection {
-      margin-top: 15px;
-      padding-top: 13px;
-      border-top: 1px solid #edf0f4;
-    }
-
-    .subsection-title {
-      font-size: 14px;
-      font-weight: bold;
-      margin-bottom: 10px;
-      color: #315779;
-    }
-
-    .map-link {
-      display: inline-block;
-      margin-top: 9px;
-      color: #1769aa;
-      font-weight: bold;
-      text-decoration: none;
-    }
-
-    .photo {
-      display: block;
-      width: 100%;
-      max-width: 420px;
-      max-height: 350px;
-      object-fit: contain;
-      border-radius: 9px;
-      background: #f1f3f5;
-      margin-top: 9px;
-    }
-
-    .empty {
-      background: white;
-      text-align: center;
-      padding: 25px;
-      border-radius: 10px;
-      color: #718096;
-    }
-
-    .pill {
-      display: inline-block;
-      padding: 5px 9px;
-      border-radius: 20px;
-      background: #e9f5ee;
-      color: #287a4b;
-      font-size: 12px;
-    }
-
-    a { overflow-wrap: anywhere; }
-
-    @media(max-width:900px) { .dashboard-layout { grid-template-columns:1fr; } .sidebar { position:static; min-height:0; padding:12px; } .brand { padding:4px 8px 12px; margin-bottom:8px; } .side-nav { display:flex; flex-wrap:wrap; gap:4px; } .side-label { display:none; } .side-link { padding:9px 10px; } }
-    @media(max-width:650px) { body{padding:10px;} header{padding:19px;} header h1{font-size:21px;} .record-card{padding:14px;} .filter-grid{grid-template-columns:repeat(2,minmax(0,1fr));} .summary{grid-template-columns:repeat(2,minmax(0,1fr));} .toolbar button{flex:1;} }
-    @media(max-width:390px) { .filter-grid{grid-template-columns:1fr;} }
-  </style>
+</style>
 </head>
 
 <body>
@@ -217,6 +70,7 @@
     <button id="logoutButton" class="logout">ログアウト</button>
   </div>
   <div id="status" class="status">起動中 | Starting...</div>
+  <section id="diagnostic" class="diagnostic" hidden><h3>エラー詳細 | Error details</h3><p>問題が発生した場合、ここに原因とサーバーからの応答を表示します。</p><pre id="diagnosticDetails"></pre></section>
   <section id="overview" class="panel">
     <div class="panel-heading"><h2>データ概要</h2><span class="result-line">取得済みデータの件数</span></div>
   <div class="summary">
@@ -315,6 +169,19 @@
 
   function showStatus(message) {
     statusEl.textContent = message;
+  }
+
+  function showDiagnostic(title, details) {
+    const box = document.getElementById("diagnostic");
+    const pre = document.getElementById("diagnosticDetails");
+    box.hidden = false;
+    box.querySelector("h3").textContent = title || "エラー詳細 | Error details";
+    pre.textContent = typeof details === "string" ? details : JSON.stringify(details, null, 2);
+  }
+
+  function clearDiagnostic() {
+    document.getElementById("diagnostic").hidden = true;
+    document.getElementById("diagnosticDetails").textContent = "";
   }
 
   function addText(parent, tag, className, value) {
@@ -696,6 +563,7 @@
 
       async function loadRecords() {
         try {
+          clearDiagnostic();
           showStatus("データを読み込んでいます | Loading records...");
           recordsEl.textContent = "読み込み中 | Loading...";
 
@@ -727,11 +595,17 @@
             })
           });
 
-          const result = await response.json();
+          const responseText = await response.text();
+          let result;
+          try { result = responseText ? JSON.parse(responseText) : {}; }
+          catch (parseError) {
+            throw new Error("サーバー応答をJSONとして読み取れません: HTTP " + response.status + "\\n" + responseText.slice(0, 1800));
+          }
 
           if (!response.ok) {
-            throw new Error(result.details || result.error ||
-              "Could not load records.");
+            const message = result.details || result.error || result.message || "Could not load records.";
+            showDiagnostic("サーバーエラー | Server error (HTTP " + response.status + ")", JSON.stringify(result, null, 2));
+            throw new Error(message + " (HTTP " + response.status + ")");
           }
 
           if (!result.success || !result.data) {
@@ -760,23 +634,19 @@
             recordsEl.textContent =
               "データ取得は成功しましたが、一覧の表示に失敗しました | List display error: " +
               (renderError && renderError.message ? renderError.message : String(renderError));
-            showStatus(
-              "データ取得成功・一覧表示エラー | Data loaded, list display failed: " +
-              (renderError && renderError.message ? renderError.message : String(renderError))
-            );
+            showStatus("データ取得成功・一覧表示エラー | Data loaded, list display failed");
+            showDiagnostic("一覧表示エラー | List rendering error", renderError && renderError.stack ? renderError.stack : String(renderError));
             return;
           }
 
-          showStatus(
-            "読み込み完了 | Loaded successfully: " +
-            allRecords.length + " records"
-          );
+          showStatus("読み込み完了 | Loaded successfully: " + allRecords.length + " records");
 
         } catch (error) {
           console.error(error);
+          const detail = error && error.stack ? error.stack : String(error);
           showStatus("エラー | Error: " + (error && error.message ? error.message : String(error)));
-          recordsEl.textContent = "一覧を表示できませんでした | Could not display records. 詳細: " +
-            (error && error.message ? error.message : String(error));
+          showDiagnostic("読み込みエラー | Loading error", detail);
+          recordsEl.textContent = "一覧を表示できませんでした。上の「エラー詳細」を確認してください。 | Could not display records. See Error details above.";
         }
       }
 
@@ -784,6 +654,8 @@
         .addEventListener("input", renderRecords);
 
       document.getElementById("typeFilter")
+        .addEventListener("change", renderRecords);
+      document.getElementById("statusFilter")
         .addEventListener("change", renderRecords);
 
       document.getElementById("dateFrom").addEventListener("change", loadRecords);
@@ -830,7 +702,8 @@
     } catch (error) {
       console.error(error);
       showStatus("エラー | Error: " + error.message);
-      recordsEl.textContent = "画面を起動できませんでした | Could not start dashboard.";
+      showDiagnostic("起動エラー | Startup error", error && error.stack ? error.stack : String(error));
+      recordsEl.textContent = "画面を起動できませんでした。上の「エラー詳細」を確認してください。 | Could not start dashboard.";
     }
   }
 
