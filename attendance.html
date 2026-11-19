@@ -125,13 +125,13 @@ button:disabled {
   </div>
 
   <div style="margin:15px 0;">
-    <label for="companyPin">会社共通PIN / Company PIN</label>
+    <label for="siteName">現場名 / Site Name</label>
     <input
-      type="password"
-      id="companyPin"
+      type="text"
+      id="siteName"
       class="field"
-      placeholder="会社共通PINを入力してください"
-      autocomplete="off"
+      placeholder="現場名を入力してください"
+      required
     >
   </div>
 
@@ -230,12 +230,6 @@ async function sendToDatabase(employeeName, recordData) {
     throw new Error("アプリ設定を確認してください");
   }
 
-  const pin = document.getElementById("companyPin").value.trim();
-
-  if (!pin) {
-    throw new Error("会社共通PINを入力してください");
-  }
-
   const response = await fetch(
     window.GENBA_CONFIG.functionUrl,
     {
@@ -245,7 +239,6 @@ async function sendToDatabase(employeeName, recordData) {
         "apikey": window.GENBA_CONFIG.publishableKey
       },
       body: JSON.stringify({
-        pin: pin,
         table: "attendance_records",
         employee_name: employeeName,
         record_data: recordData
@@ -274,10 +267,10 @@ async function checkIn() {
     return;
   }
 
-  const pin = document.getElementById("companyPin").value.trim();
+  const siteName = document.getElementById("siteName").value.trim();
 
-  if (!pin) {
-    alert("会社共通PINを入力してください");
+  if (!siteName) {
+    alert("現場名を入力してください");
     return;
   }
 
@@ -295,6 +288,7 @@ async function checkIn() {
 
     const record = {
       employeeName: name,
+      siteName: siteName,
       date: now.toLocaleDateString("ja-JP"),
       checkIn: now.toLocaleTimeString("ja-JP"),
       checkOut: "",
@@ -304,6 +298,7 @@ async function checkIn() {
 
     await sendToDatabase(name, {
       event_type: "checkin",
+      siteName: siteName,
       ...record
     });
 
@@ -330,10 +325,10 @@ async function checkOut() {
   if (!records.length || records[0].checkOut) return;
 
   const name = records[0].employeeName;
-  const pin = document.getElementById("companyPin").value.trim();
+  const siteName = document.getElementById("siteName").value.trim();
 
-  if (!pin) {
-    alert("会社共通PINを入力してください");
+  if (!siteName) {
+    alert("現場名を入力してください");
     return;
   }
 
@@ -350,6 +345,7 @@ async function checkOut() {
 
     const updatedRecord = {
       ...records[0],
+      siteName: siteName,
       checkOut: new Date().toLocaleTimeString("ja-JP"),
       checkOutLocation: location,
       checkOutAddress: address
@@ -357,6 +353,7 @@ async function checkOut() {
 
     await sendToDatabase(name, {
       event_type: "checkout",
+      siteName: siteName,
       ...updatedRecord
     });
 
