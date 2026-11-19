@@ -419,7 +419,9 @@
   }
 
   function calculateWorkingHours(data) {
-    if (!data.checkIn || !data.checkOut) return "";
+    if (!data || typeof data.checkIn !== "string" ||
+        typeof data.checkOut !== "string" ||
+        !data.checkIn || !data.checkOut) return "";
 
     const start = data.checkIn.split(":").map(Number);
     const end = data.checkOut.split(":").map(Number);
@@ -453,7 +455,8 @@
     const status = document.getElementById("statusFilter").value;
 
     const filtered = allRecords.filter(record => {
-      const data = record.record_data || {};
+      const data = record.record_data && typeof record.record_data === "object"
+        ? record.record_data : {};
 
       const searchable = (JSON.stringify(data) + " " + String(record.employee_name || "")).toLowerCase();
 
@@ -475,8 +478,11 @@
       return;
     }
 
+    let renderErrors = 0;
     filtered.forEach(record => {
-      const data = record.record_data || {};
+      try {
+      const data = record.record_data && typeof record.record_data === "object"
+        ? record.record_data : {};
       const card = document.createElement("article");
       card.className = "record-card";
 
@@ -628,7 +634,16 @@
       }
 
       recordsEl.appendChild(card);
+      } catch (recordError) {
+        renderErrors++;
+        console.error("Record display error:", record.id, recordError);
+      }
     });
+
+    if (renderErrors > 0) {
+      addText(recordsEl, "div", "empty",
+        renderErrors + " 件のデータを表示できませんでした。ほかのデータは表示しています。");
+    }
   }
 
   function updateCounts(data) {
@@ -746,8 +761,9 @@
 
         } catch (error) {
           console.error(error);
-          showStatus("エラー | Error: " + error.message);
-          recordsEl.textContent = "データを読み込めませんでした | Could not load records.";
+          showStatus("エラー | Error: " + (error && error.message ? error.message : String(error)));
+          recordsEl.textContent = "一覧を表示できませんでした | Could not display records. 詳細: " +
+            (error && error.message ? error.message : String(error));
         }
       }
 
