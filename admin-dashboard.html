@@ -326,6 +326,8 @@
   };
 
   let allRecords = [];
+  let supabaseClient = null;
+  let adminApiUrl = "";
 
   function showStatus(message) {
     statusEl.textContent = message;
@@ -528,6 +530,89 @@
 
       card.appendChild(grid);
 
+      if (record.table === "equipment_requests") {
+        const statusSection = document.createElement("div");
+        statusSection.className = "subsection";
+        addText(statusSection, "div", "subsection-title",
+          "申請状況の更新 | Update Request Status");
+
+        const controls = document.createElement("div");
+        controls.style.display = "flex";
+        controls.style.flexWrap = "wrap";
+        controls.style.gap = "10px";
+        controls.style.alignItems = "center";
+
+        const statusSelect = document.createElement("select");
+        statusSelect.style.flex = "1";
+        statusSelect.style.minWidth = "180px";
+
+        ["未対応", "対応中", "完了"].forEach(status => {
+          const option = document.createElement("option");
+          option.value = status;
+          option.textContent = status;
+          statusSelect.appendChild(option);
+        });
+        statusSelect.value = data.status || "未対応";
+
+        const saveButton = document.createElement("button");
+        saveButton.type = "button";
+        saveButton.textContent = "状態を保存 | Save Status";
+
+        const statusMessage = document.createElement("span");
+        statusMessage.style.fontSize = "13px";
+
+        saveButton.addEventListener("click", async () => {
+          saveButton.disabled = true;
+          statusSelect.disabled = true;
+          statusMessage.textContent = "保存中...";
+          statusMessage.style.color = "#64748b";
+
+          try {
+            const sessionResult = await supabaseClient.auth.getSession();
+            if (sessionResult.error) throw sessionResult.error;
+            const session = sessionResult.data.session;
+            if (!session) throw new Error("ログインし直してください");
+
+            const response = await fetch(adminApiUrl, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "apikey": window.GENBA_CONFIG.publishableKey,
+                "Authorization": "Bearer " + session.access_token
+              },
+              body: JSON.stringify({
+                action: "update_equipment_status",
+                id: record.id,
+                status: statusSelect.value
+              })
+            });
+
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+              throw new Error(result.error || "状態を更新できませんでした");
+            }
+
+            record.record_data = {
+              ...record.record_data,
+              status: statusSelect.value,
+              statusUpdatedAt: new Date().toISOString()
+            };
+            statusMessage.textContent = "保存しました";
+            statusMessage.style.color = "#15803d";
+            renderRecords();
+          } catch (error) {
+            statusMessage.textContent = "失敗: " + error.message;
+            statusMessage.style.color = "#dc2626";
+            saveButton.disabled = false;
+            statusSelect.disabled = false;
+          }
+        });
+
+        controls.append(statusSelect, saveButton, statusMessage);
+        statusSection.appendChild(controls);
+        card.appendChild(statusSection);
+      }
+
       if (record.table === "attendance_records") {
         const hours = calculateWorkingHours(data);
 
@@ -593,7 +678,7 @@
         throw new Error("Supabase library could not be loaded.");
       }
 
-      const supabase = window.supabase.createClient(
+      supabaseClient = window.supabase.createClient(
         "https://woyappmxwoutbsyljpil.supabase.co",
         config.publishableKey,
         {
@@ -605,7 +690,7 @@
         }
       );
 
-      const adminApiUrl = config.functionUrl.replace(
+      adminApiUrl = config.functionUrl.replace(
         "/genba-api",
         "/genba-admin-api"
       );
@@ -615,7 +700,7 @@
           showStatus("データを読み込んでいます | Loading records...");
           recordsEl.textContent = "読み込み中 | Loading...";
 
-          const sessionResult = await supabase.auth.getSession();
+          const sessionResult = await supabaseClient.auth.getSession();
 
           if (sessionResult.error) throw sessionResult.error;
 
@@ -692,7 +777,7 @@
 
       document.getElementById("logoutButton")
         .addEventListener("click", async () => {
-          await supabase.auth.signOut();
+          await supabaseClient.auth.signOut();
           window.location.replace("admin-login.html");
         });
 
