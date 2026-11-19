@@ -462,7 +462,7 @@
 
       const matchesKeyword = !keyword || searchable.includes(keyword);
       const matchesType = type === "all" || record.table === type;
-      const recordDate = String(data.date || data.workDate || record.created_at || "").slice(0, 10).replace(/\\//g, "-");
+      const recordDate = String(data.date || data.workDate || record.created_at || "").slice(0, 10).replaceAll("/", "-");
       const matchesFrom = !from || recordDate >= from;
       const matchesTo = !to || recordDate <= to;
       const matchesStatus = status === "all" || String(data.status || "") === status;
@@ -752,7 +752,20 @@
           );
 
           updateCounts(result.data);
-          renderRecords();
+
+          try {
+            renderRecords();
+          } catch (renderError) {
+            console.error("作業データ一覧の表示エラー:", renderError);
+            recordsEl.textContent =
+              "データ取得は成功しましたが、一覧の表示に失敗しました | List display error: " +
+              (renderError && renderError.message ? renderError.message : String(renderError));
+            showStatus(
+              "データ取得成功・一覧表示エラー | Data loaded, list display failed: " +
+              (renderError && renderError.message ? renderError.message : String(renderError))
+            );
+            return;
+          }
 
           showStatus(
             "読み込み完了 | Loaded successfully: " +
