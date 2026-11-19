@@ -1,4 +1,4 @@
-const CACHE_NAME = "genba-tsunagaru-v4";
+const CACHE_NAME = "genba-tsunagaru-v5";
 const APP_FILES = [
   "/-genba-tsunagaru/","/-genba-tsunagaru/index.html","/-genba-tsunagaru/dashboard.html",
   "/-genba-tsunagaru/attendance.html","/-genba-tsunagaru/location.html","/-genba-tsunagaru/report.html",
@@ -7,7 +7,7 @@ const APP_FILES = [
   "/-genba-tsunagaru/manifest.json","/-genba-tsunagaru/app-config.js"
 ];
 self.addEventListener("install", event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_FILES)));
+  event.waitUntil(caches.open(CACHE_NAME).then(async cache => { await Promise.allSettled(APP_FILES.map(file => cache.add(file))); }));
   self.skipWaiting();
 });
 self.addEventListener("activate", event => {
