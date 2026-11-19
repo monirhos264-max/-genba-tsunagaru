@@ -288,7 +288,14 @@ async function refreshApplicationStatus(application) {
 
     const result = await response.json();
     if (response.ok && result.success && result.status) {
+      const previousStatus = application.status;
       application.status = result.status;
+      if (previousStatus !== "完了" && result.status === "完了") {
+        showMessage("備品申請が完了しました。現場：" + application.siteName + " / 備品：" + application.equipmentName, "#15803d");
+        if ("Notification" in window && Notification.permission === "granted") {
+          new Notification("備品申請が完了しました", { body: "現場：" + application.siteName + " / 備品：" + application.equipmentName });
+        }
+      }
       if (result.id) application.recordId = result.id;
       saveApplications();
       renderApplications();
@@ -378,6 +385,10 @@ form.addEventListener("submit", async function(event) {
 
 renderApplications();
 applications.forEach(refreshApplicationStatus);
+// Webpage-only users see status changes while this page remains open.
+window.setInterval(() => {
+  if (document.visibilityState === "visible") applications.forEach(refreshApplicationStatus);
+}, 30000);
 </script>
 
 </body>
