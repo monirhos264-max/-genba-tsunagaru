@@ -13,15 +13,20 @@
   <style>
     * { box-sizing: border-box; }
 
-    body {
-      margin: 0;
-      padding: 18px;
-      background: #f2f5f9;
-      color: #243247;
-      font-family: Arial, "Noto Sans JP", sans-serif;
-    }
-
-    .container { max-width: 1150px; margin: auto; }
+    body { margin:0; padding:22px; background:#f4f7fb; color:#172b4d; font-family:Arial,"Noto Sans JP",sans-serif; }
+    .container { max-width:1440px; margin:auto; }
+    .dashboard-layout { display:grid; grid-template-columns:220px minmax(0,1fr); gap:22px; align-items:start; }
+    .sidebar { position:sticky; top:18px; background:#102b4e; color:#fff; border-radius:18px; padding:20px 14px; min-height:calc(100vh - 44px); }
+    .brand { padding:4px 10px 20px; border-bottom:1px solid #ffffff24; margin-bottom:16px; }
+    .brand strong { display:block; font-size:19px; letter-spacing:.3px; }
+    .brand small { display:block; color:#b9cce2; margin-top:6px; }
+    .side-label { color:#8fa9c6; font-size:11px; letter-spacing:1px; padding:10px 10px 7px; }
+    .side-link { display:block; color:#e4edf7; text-decoration:none; padding:11px 12px; border-radius:10px; margin:3px 0; font-size:14px; }
+    .side-link.active,.side-link:hover { background:#244b76; color:#fff; }
+    .main-content { min-width:0; }
+    header { background:linear-gradient(120deg,#12345a,#176ca6); color:white; padding:25px 28px; border-radius:18px; margin-bottom:20px; box-shadow:0 10px 30px #173b6518; }
+    header h1 { margin:0 0 7px; font-size:25px; }
+    header p { margin:4px 0; color:#d9e8f7; }
 
     header {
       background: linear-gradient(120deg, #173b65, #246b9c);
@@ -34,33 +39,26 @@
     header h1 { margin: 0 0 7px; font-size: 25px; }
     header p { margin: 4px 0; color: #e1eaf4; }
 
-    .toolbar, .filters {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 18px;
-    }
+    .toolbar, .filters { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px; }
+    .panel { background:#fff; border:1px solid #e8eef5; border-radius:16px; padding:18px; margin-bottom:18px; box-shadow:0 4px 18px #16324f08; }
+    .panel-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
+    .panel-heading h2 { margin:0; font-size:17px; }
+    .filter-grid { display:grid; grid-template-columns:repeat(4,minmax(130px,1fr)); gap:10px; }
+    .filter-item { display:flex; flex-direction:column; gap:6px; min-width:0; }
+    .filter-item label { color:#667991; font-size:12px; font-weight:700; }
+    .filter-item input,.filter-item select { width:100%; min-width:0; }
+    .quick-filters { display:flex; flex-wrap:wrap; gap:7px; margin-top:12px; }
+    .quick-filters button { background:#edf4fb; color:#28577f; padding:8px 12px; font-size:12px; }
+    .quick-filters button:hover { background:#dceaf7; }
+    .result-line { color:#718096; font-size:13px; }
 
-    button {
-      padding: 12px 18px;
-      border: none;
-      border-radius: 8px;
-      background: #1769aa;
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-    }
+    button { padding:12px 18px; border:0; border-radius:9px; background:#1769aa; color:#fff; font-weight:700; cursor:pointer; transition:.15s ease; }
+    button:hover { filter:brightness(1.06); transform:translateY(-1px); }
+    button:disabled { opacity:.6; cursor:wait; transform:none; }
 
     button.logout { background: #b83232; }
 
-    .status {
-      background: white;
-      border-radius: 9px;
-      padding: 14px;
-      margin-bottom: 18px;
-      overflow-wrap: anywhere;
-      font-size: 14px;
-    }
+    .status { background:#fff; border:1px solid #e8eef5; border-radius:11px; padding:12px 15px; margin-bottom:18px; overflow-wrap:anywhere; font-size:13px; color:#53677f; }
 
     .summary {
       display: grid;
@@ -70,10 +68,7 @@
     }
 
     .summary-card {
-      background: white;
-      padding: 17px;
-      border-radius: 11px;
-      box-shadow: 0 2px 8px #0000000a;
+      background:white; padding:18px; border:1px solid #e8eef5; border-radius:14px; box-shadow:0 4px 18px #16324f08;
     }
 
     .summary-card h3 {
@@ -84,25 +79,14 @@
 
     .count { font-size: 29px; font-weight: bold; color: #1769aa; }
 
-    h2.section-title { font-size: 19px; margin: 25px 0 13px; }
+    h2.section-title { font-size:19px; margin:24px 0 13px; }
 
     input, select {
-      min-width: 160px;
-      flex: 1;
-      padding: 12px;
-      border: 1px solid #d5dce5;
-      border-radius: 8px;
-      background: white;
-      font-size: 14px;
+      min-width:160px; flex:1; padding:11px 12px; border:1px solid #d5dfeb; border-radius:9px; background:#fff; font-size:14px; color:#243b53;
     }
 
     .record-card {
-      background: white;
-      border-radius: 12px;
-      padding: 18px;
-      margin-bottom: 15px;
-      box-shadow: 0 2px 9px #0000000b;
-      overflow-wrap: anywhere;
+      background:white; border:1px solid #e7edf4; border-radius:15px; padding:18px; margin-bottom:13px; box-shadow:0 4px 18px #16324f08; overflow-wrap:anywhere;
     }
 
     .record-head {
@@ -205,34 +189,36 @@
 
     a { overflow-wrap: anywhere; }
 
-    @media(max-width: 600px) {
-      body { padding: 11px; }
-      header { padding: 19px; }
-      header h1 { font-size: 21px; }
-      .record-card { padding: 14px; }
-      button { flex: 1; }
-    }
+    @media(max-width:900px) { .dashboard-layout { grid-template-columns:1fr; } .sidebar { position:static; min-height:0; padding:12px; } .brand { padding:4px 8px 12px; margin-bottom:8px; } .side-nav { display:flex; flex-wrap:wrap; gap:4px; } .side-label { display:none; } .side-link { padding:9px 10px; } }
+    @media(max-width:650px) { body{padding:10px;} header{padding:19px;} header h1{font-size:21px;} .record-card{padding:14px;} .filter-grid{grid-template-columns:repeat(2,minmax(0,1fr));} .summary{grid-template-columns:repeat(2,minmax(0,1fr));} .toolbar button{flex:1;} }
+    @media(max-width:390px) { .filter-grid{grid-template-columns:1fr;} }
   </style>
 </head>
 
 <body>
-<div class="container">
-
+<div class="container dashboard-layout">
+  <aside class="sidebar">
+    <div class="brand"><strong>現場つながる</strong><small>管理システム / MANAGEMENT</small></div>
+    <div class="side-label">MENU</div>
+    <nav class="side-nav">
+      <a class="side-link active" href="#overview">▦　ダッシュボード</a>
+      <a class="side-link" href="#filters">⌕　データ検索</a>
+      <a class="side-link" href="#records">▤　作業データ一覧</a>
+    </nav>
+  </aside>
+  <main class="main-content">
   <header>
-    <h1>現場つながる</h1>
-    <p>管理者ダッシュボード | Admin Dashboard</p>
-    <p>現場管理・従業員管理 | Site & Employee Management</p>
+    <h1>管理者ダッシュボード</h1>
+    <p>現場・従業員の記録をまとめて確認できます。</p>
+    <p>Attendance / Work Reports / Equipment / Delivery</p>
   </header>
-
   <div class="toolbar">
-    <button id="refreshButton">データ更新 | Refresh</button>
-    <button id="logoutButton" class="logout">ログアウト | Logout</button>
+    <button id="refreshButton">↻　データ更新</button>
+    <button id="logoutButton" class="logout">ログアウト</button>
   </div>
-
   <div id="status" class="status">起動中 | Starting...</div>
-
-  <h2 class="section-title">データ概要 | Data Summary</h2>
-
+  <section id="overview" class="panel">
+    <div class="panel-heading"><h2>データ概要</h2><span class="result-line">取得済みデータの件数</span></div>
   <div class="summary">
     <div class="summary-card">
       <h3>出勤・退勤 | Attendance</h3>
@@ -255,34 +241,32 @@
       <div class="count" id="locationCount">0</div>
     </div>
   </div>
-
-  <h2 class="section-title">データ検索 | Search Records</h2>
-
-  <div class="filters">
-    <input id="searchInput" type="search"
-      placeholder="従業員名・内容で検索 | Search name or details">
-
-    <select id="typeFilter">
-      <option value="all">すべて | All Types</option>
-      <option value="attendance_records">出勤・退勤 | Attendance</option>
-      <option value="work_reports">作業報告 | Work Reports</option>
-      <option value="equipment_requests">備品申請 | Equipment</option>
-      <option value="delivery_records">納品確認 | Delivery</option>
-      <option value="location_records">位置情報 | Location</option>
-    </select>
-
-    <input id="dateFilter" type="date" aria-label="日付検索 Search by date">
-  </div>
-
-  <h2 class="section-title">作業データ一覧 | Work Records</h2>
-  <div id="records">読み込み中 | Loading...</div>
-
+  </section>
+  <section id="filters" class="panel">
+    <div class="panel-heading"><h2>データ検索・絞り込み</h2><span class="result-line" id="resultCount">0 件</span></div>
+    <div class="filter-grid">
+      <div class="filter-item"><label for="searchInput">キーワード / 従業員名・現場名</label><input id="searchInput" type="search" placeholder="名前・現場・内容を入力"></div>
+      <div class="filter-item"><label for="typeFilter">データ種類</label><select id="typeFilter"><option value="all">すべて</option><option value="attendance_records">出勤・退勤</option><option value="work_reports">作業報告</option><option value="equipment_requests">備品申請</option><option value="delivery_records">納品確認</option><option value="location_records">位置情報</option></select></div>
+      <div class="filter-item"><label for="monthFilter">月ごとに検索</label><input id="monthFilter" type="month"></div>
+      <div class="filter-item"><label for="statusFilter">ステータス</label><select id="statusFilter"><option value="all">すべて</option><option value="未対応">未対応</option><option value="対応中">対応中</option><option value="完了">完了</option></select></div>
+      <div class="filter-item"><label for="dateFrom">開始日</label><input id="dateFrom" type="date"></div>
+      <div class="filter-item"><label for="dateTo">終了日</label><input id="dateTo" type="date"></div>
+    </div>
+    <div class="quick-filters">
+      <button type="button" data-period="today">今日</button><button type="button" data-period="7">過去7日</button><button type="button" data-period="month">今月</button><button type="button" id="clearFilters">条件をリセット</button>
+    </div>
+  </section>
+  <section id="records" class="panel">
+    <div class="panel-heading"><h2>作業データ一覧</h2><span class="result-line">新しい記録順</span></div>
+    <div id="recordsList">読み込み中 | Loading...</div>
+  </section>
+  </main>
 </div>
 
 <script>
 (() => {
   const statusEl = document.getElementById("status");
-  const recordsEl = document.getElementById("records");
+  const recordsEl = document.getElementById("recordsList");
 
   const tableNames = {
     attendance_records: "出勤・退勤 | Attendance",
@@ -469,8 +453,7 @@
     const filtered = allRecords.filter(record => {
       const data = record.record_data || {};
 
-      const searchable = JSON.stringify(data).toLowerCase() +
-        String(record.employee_name || "").toLowerCase();
+      const searchable = (JSON.stringify(data) + " " + String(record.employee_name || "")).toLowerCase();
 
       const matchesKeyword = !keyword || searchable.includes(keyword);
       const matchesType = type === "all" || record.table === type;
@@ -485,6 +468,7 @@
 
     recordsEl.replaceChildren();
 
+    document.getElementById("resultCount").textContent = filtered.length + " 件 / " + allRecords.length + " 件";
     if (filtered.length === 0) {
       addText(recordsEl, "div", "empty",
         "該当するデータはありません | No matching records");
@@ -711,6 +695,8 @@
             return;
           }
 
+          const dateFromValue = document.getElementById("dateFrom").value;
+          const dateToValue = document.getElementById("dateTo").value;
           const response = await fetch(adminApiUrl, {
             method: "POST",
             headers: {
@@ -720,7 +706,9 @@
             },
             body: JSON.stringify({
               action: "list",
-              tables: Object.keys(tableNames)
+              tables: Object.keys(tableNames),
+              dateFrom: dateFromValue || null,
+              dateTo: dateToValue || null
             })
           });
 
@@ -769,11 +757,37 @@
       document.getElementById("typeFilter")
         .addEventListener("change", renderRecords);
 
-      document.getElementById("dateFilter")
-        .addEventListener("change", renderRecords);
-
-      document.getElementById("refreshButton")
-        .addEventListener("click", loadRecords);
+      document.getElementById("dateFrom").addEventListener("change", loadRecords);
+      document.getElementById("dateTo").addEventListener("change", loadRecords);
+      document.getElementById("monthFilter").addEventListener("change", () => {
+        const month = document.getElementById("monthFilter").value;
+        if (!month) return;
+        const [year, mon] = month.split("-").map(Number);
+        document.getElementById("dateFrom").value = month + "-01";
+        document.getElementById("dateTo").value = new Date(year, mon, 0).toISOString().slice(0,10);
+        loadRecords();
+      });
+      document.querySelectorAll("[data-period]").forEach(button => {
+        button.addEventListener("click", () => {
+          const today = new Date();
+          const iso = d => new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+          const period = button.dataset.period;
+          let start = new Date(today);
+          if (period === "7") start.setDate(today.getDate()-6);
+          if (period === "month") start = new Date(today.getFullYear(),today.getMonth(),1);
+          document.getElementById("dateFrom").value = iso(start);
+          document.getElementById("dateTo").value = iso(today);
+          document.getElementById("monthFilter").value = period === "month" ? iso(today).slice(0,7) : "";
+          loadRecords();
+        });
+      });
+      document.getElementById("clearFilters").addEventListener("click", () => {
+        ["searchInput","monthFilter","dateFrom","dateTo"].forEach(id => document.getElementById(id).value = "");
+        document.getElementById("typeFilter").value = "all";
+        document.getElementById("statusFilter").value = "all";
+        loadRecords();
+      });
+      document.getElementById("refreshButton").addEventListener("click", loadRecords);
 
       document.getElementById("logoutButton")
         .addEventListener("click", async () => {
