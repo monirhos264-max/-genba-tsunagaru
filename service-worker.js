@@ -1,5 +1,5 @@
 
-const CACHE_NAME = "genba-tsunagaru-v1";
+const CACHE_NAME = "genba-tsunagaru-v2";
 
 const APP_FILES = [
   "/-genba-tsunagaru/",
