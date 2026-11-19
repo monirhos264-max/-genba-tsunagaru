@@ -37,23 +37,45 @@ function base64ToBytes(value){const padding="=".repeat((4-value.length%4)%4);con
 pushButton.addEventListener("click",async()=>{
  const employeeName=document.getElementById("pushEmployeeName").value.trim();
  if(!employeeName){showPushMessage("社員名を入力してください。");return;}
- if(!("serviceWorker" in navigator)||!("PushManager" in window)||!("Notification" in window)){showPushMessage("このブラウザはPush通知に対応していません。ページを開いて確認してください。");return;}
+ if(!("serviceWorker" in navigator)||!("PushManager" in window)||!("Notification" in window)){showPushMessage("このブラウザはPush通知に対応していません。iPhoneはホーム画面に追加したアプリから開いてください。");return;}
+ const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent);
+ const isStandalone=window.navigator.standalone===true||window.matchMedia("(display-mode: standalone)").matches;
+ if(isIOS&&!isStandalone){showPushMessage("iPhoneではSafariの共有ボタンから「ホーム画面に追加」を行い、ホーム画面のアイコンからアプリを開いてください。Safariのタブでは通知登録できません。");return;}
  if(!window.GENBA_CONFIG?.pushPublicKey){showPushMessage("通知設定がまだ完了していません。管理者に連絡してください。");return;}
+ if(Notification.permission==="denied"){showPushMessage("通知がブロックされています。iPhoneの設定から 現場つながる の通知を許可してから、もう一度お試しください。");return;}
  pushButton.disabled=true;pushButton.textContent="設定中...";
  try{
   const permission=await Notification.requestPermission();
-  if(permission!=="granted")throw new Error("通知が許可されていません。ブラウザまたは端末の設定を確認してください。");
+  if(permission!=="granted")throw new Error("通知が許可されていません。端末の設定を確認してください。");
+  showPushMessage("通知許可を確認しました。通知サービスを準備しています...",true);
   const registration=await navigator.serviceWorker.register("./service-worker.js");
-  await navigator.serviceWorker.ready;
-  let subscription=await registration.pushManager.getSubscription();
-  if(!subscription)subscription=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:base64ToBytes(window.GENBA_CONFIG.pushPublicKey)});
-  const response=await fetch(window.GENBA_CONFIG.functionUrl,{method:"POST",headers:{"Content-Type":"application/json","apikey":window.GENBA_CONFIG.publishableKey},body:JSON.stringify({action:"subscribe_push",employee_name:employeeName,subscription:subscription.toJSON()})});
-  const result=await response.json();
-  if(!response.ok||!result.success)throw new Error(result.error||"通知登録に失敗しました。");
+  const ready=await Promise.race([
+   navigator.serviceWorker.ready,
+   new Promise((_,reject)=>setTimeout(()=>reject(new Error("通知サービスの起動に時間がかかっています。画面を再読み込みして再度お試しください。")),12000))
+  ]);
+  const activeRegistration=ready||registration;
+  let subscription=await activeRegistration.pushManager.getSubscription();
+  if(!subscription)subscription=await activeRegistration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:base64ToBytes(window.GENBA_CONFIG.pushPublicKey)});
+  showPushMessage("端末登録を保存しています...",true);
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),15000);
+  let response;
+  try{
+   response=await fetch(window.GENBA_CONFIG.functionUrl,{method:"POST",headers:{"Content-Type":"application/json","apikey":window.GENBA_CONFIG.publishableKey},body:JSON.stringify({action:"subscribe_push",employee_name:employeeName,subscription:subscription.toJSON()}),signal:controller.signal});
+  }finally{clearTimeout(timeout);}
+  const responseText=await response.text();
+  let result={};try{result=responseText?JSON.parse(responseText):{};}catch(_){throw new Error("サーバー応答を読み取れません: "+responseText.slice(0,300));}
+  if(!response.ok||!result.success)throw new Error(result.error||("通知登録に失敗しました (HTTP "+response.status+")"));
   localStorage.setItem("genba_push_employee_name",employeeName);
-  showPushMessage("通知を受け取る設定が完了しました。次回の完了連絡から届きます。",true);
- }catch(error){showPushMessage(error.message||"通知設定に失敗しました。");}
- finally{pushButton.disabled=false;pushButton.textContent="通知を受け取る / 通知を有効にする";}
+  showPushMessage("通知登録が完了しました。この端末で通知を受け取れます。",true);
+ }catch(error){
+  const message=error&&error.name==="AbortError"?"サーバー応答がタイムアウトしました。通信を確認して再度お試しください。":(error.message||"通知設定に失敗しました。");
+  showPushMessage(message);
+  console.error("Push registration failed:",error);
+ }finally{
+  pushButton.disabled=false;
+  pushButton.textContent="通知を受け取る / 通知を有効にする";
+ }
 });
 const savedName=localStorage.getItem("genba_push_employee_name");if(savedName)document.getElementById("pushEmployeeName").value=savedName;
 if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js").catch(console.error));
