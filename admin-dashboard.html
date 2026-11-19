@@ -448,7 +448,9 @@
       .value.trim().toLowerCase();
 
     const type = document.getElementById("typeFilter").value;
-    const date = document.getElementById("dateFilter").value;
+    const from = document.getElementById("dateFrom").value;
+    const to = document.getElementById("dateTo").value;
+    const status = document.getElementById("statusFilter").value;
 
     const filtered = allRecords.filter(record => {
       const data = record.record_data || {};
@@ -457,13 +459,11 @@
 
       const matchesKeyword = !keyword || searchable.includes(keyword);
       const matchesType = type === "all" || record.table === type;
-
-      const recordDate = String(data.date || data.workDate ||
-        record.created_at || "").slice(0, 10).replace(/\//g, "-");
-
-      const matchesDate = !date || recordDate === date;
-
-      return matchesKeyword && matchesType && matchesDate;
+      const recordDate = String(data.date || data.workDate || record.created_at || "").slice(0, 10).replace(/\\//g, "-");
+      const matchesFrom = !from || recordDate >= from;
+      const matchesTo = !to || recordDate <= to;
+      const matchesStatus = status === "all" || String(data.status || "") === status;
+      return matchesKeyword && matchesType && matchesFrom && matchesTo && matchesStatus;
     });
 
     recordsEl.replaceChildren();
