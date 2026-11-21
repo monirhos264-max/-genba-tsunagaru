@@ -121,11 +121,6 @@ button:disabled {
       <input type="text" id="employeeName"
         placeholder="社員名を入力してください" required>
 
-      <label for="companyPin">会社共通PIN / Company PIN</label>
-      <input type="password" id="companyPin"
-        placeholder="会社共通PINを入力してください"
-        autocomplete="off" required>
-
       <label for="workDate">作業日</label>
       <input type="date" id="workDate" required>
 
@@ -234,12 +229,6 @@ async function sendToDatabase(report) {
     throw new Error("アプリ設定を確認してください");
   }
 
-  const pin = document.getElementById("companyPin").value.trim();
-
-  if (!pin) {
-    throw new Error("会社共通PINを入力してください");
-  }
-
   const response = await fetch(
     window.GENBA_CONFIG.functionUrl,
     {
@@ -249,7 +238,6 @@ async function sendToDatabase(report) {
         "apikey": window.GENBA_CONFIG.publishableKey
       },
       body: JSON.stringify({
-        pin: pin,
         table: "work_reports",
         employee_name: report.employeeName,
         record_data: report
